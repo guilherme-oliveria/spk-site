@@ -1,0 +1,47 @@
+[
+  {
+    "puuid": "sample-puuid-ana",
+    "riotIdGameName": "AhriDeLuxo",
+    "riotIdTagline": "SPK",
+    "displayName": "Ana",
+    "mainRole": "MIDDLE",
+    "profileIconId": 4568,
+    "bio": "Jura que o flash estava em cooldown."
+  },
+  {
+    "puuid": "sample-puuid-bia",
+    "riotIdGameName": "SmiteNoDragao",
+    "riotIdTagline": "BR1",
+    "displayName": "Bia",
+    "mainRole": "JUNGLE",
+    "profileIconId": 5023,
+    "bio": "Gank no bot aos 3:15, todo santo jogo."
+  },
+  {
+    "puuid": "sample-puuid-caio",
+    "riotIdGameName": "TiltadoDoTop",
+    "riotIdTagline": "SPK",
+    "displayName": "Caio",
+    "mainRole": "TOP",
+    "profileIconId": 4655,
+    "bio": "Ilha particular no topo, aceita visitas raras."
+  },
+  {
+    "puuid": "sample-puuid-duda",
+    "riotIdGameName": "SoFarmoMesmo",
+    "riotIdTagline": "BR1",
+    "displayName": "Duda",
+    "mainRole": "BOTTOM",
+    "profileIconId": 5367,
+    "bio": "CS antes de tudo, inclusive da luta."
+  },
+  {
+    "puuid": "sample-puuid-leo",
+    "riotIdGameName": "WardNaoEhCrime",
+    "riotIdTagline": "SPK",
+    "displayName": "Léo",
+    "mainRole": "UTILITY",
+    "profileIconId": 4834,
+    "bio": "Compra sentinela de controle por esporte."
+  }
+]

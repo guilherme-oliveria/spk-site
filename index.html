@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPK — Histórico</title>
+<meta name="description" content="SPK: histórico de partidas de League of Legends do grupo, placar, jogadores e destaques.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Tokens (docs/design.md §2 + design-v2-combinado.md) ===== */
+:root {
+  color-scheme: dark;
+  --bg:#0B0F1A; --surface:#131A2A; --surface-2:#1B2438; --border:#2A3550;
+  --text:#E8ECF4; --text-muted:#9AA5BC; --text-soft:#C3CBDA;
+  --accent:#4F8CFF; --on-accent:#0B0F1A; --accent-soft:rgb(79 140 255 / .14);
+  --gold:#E8B04B; --gold-soft:rgb(232 176 75 / .14);
+  --win:#3DD68C; --win-bg:#11261F; --loss:#FF6B6B; --loss-bg:#2A1519;
+  --spk-row:rgb(232 176 75 / .08);
+  --shadow-1:0 1px 2px rgb(0 0 0 / .4);
+  --shadow-2:0 8px 24px rgb(0 0 0 / .45);
+  --focus:0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px; --s-7:48px; --s-8:64px;
+  --r-sm:6px; --r-md:10px; --r-lg:16px; --r-pill:999px;
+  --font-display:"Anton","Bahnschrift","Arial Narrow",sans-serif;
+  --font-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --dur:160ms; --ease:cubic-bezier(.2,.7,.2,1);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg:#F5F7FB; --surface:#FFFFFF; --surface-2:#EDF1F8; --border:#D3DAE6;
+    --text:#111827; --text-muted:#4B5568; --text-soft:#374151;
+    --accent:#1F5FD6; --on-accent:#FFFFFF; --accent-soft:rgb(31 95 214 / .10);
+    --gold:#8A5A00; --gold-soft:rgb(184 128 20 / .14);
+    --win:#0F7A47; --win-bg:#E6F5EC; --loss:#C42B36; --loss-bg:#FBE9EA;
+    --spk-row:rgb(184 128 20 / .10);
+    --shadow-1:0 1px 2px rgb(17 24 39 / .08);
+    --shadow-2:0 8px 24px rgb(17 24 39 / .12);
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg:#F5F7FB; --surface:#FFFFFF; --surface-2:#EDF1F8; --border:#D3DAE6;
+  --text:#111827; --text-muted:#4B5568; --text-soft:#374151;
+  --accent:#1F5FD6; --on-accent:#FFFFFF; --accent-soft:rgb(31 95 214 / .10);
+  --gold:#8A5A00; --gold-soft:rgb(184 128 20 / .14);
+  --win:#0F7A47; --win-bg:#E6F5EC; --loss:#C42B36; --loss-bg:#FBE9EA;
+  --spk-row:rgb(184 128 20 / .10);
+  --shadow-1:0 1px 2px rgb(17 24 39 / .08);
+  --shadow-2:0 8px 24px rgb(17 24 39 / .12);
+}
+
+/* ===== Base ===== */
+*,*::before,*::after { box-sizing:border-box; }
+[hidden] { display:none !important; }
+html { -webkit-text-size-adjust:100%; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior:smooth; } }
+body { margin:0; background:var(--bg); color:var(--text); font:400 16px/1.5 var(--font-body); }
+h1,h2,h3,p,ul,ol,dl,dd,figure,fieldset { margin:0; }
+ul,ol { padding:0; list-style:none; }
+button { font:inherit; color:inherit; }
+img { display:block; }
+a { color:var(--accent); }
+.sr-only { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.num { font-variant-numeric:tabular-nums; }
+.mono { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+.muted { color:var(--text-muted); }
+.micro { font-size:12px; line-height:1.3; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); }
+.container { max-width:1200px; margin-inline:auto; padding-inline:var(--s-4); }
+:focus-visible { outline:none; box-shadow:var(--focus); }
+[tabindex="-1"]:focus { outline:none; box-shadow:none; }
+.skip { position:absolute; left:var(--s-4); top:-100px; z-index:10; display:inline-flex; align-items:center; min-height:44px; padding:0 var(--s-4); background:var(--accent); color:var(--on-accent); border-radius:var(--r-sm); font-weight:600; text-decoration:none; }
+.skip:focus { top:var(--s-4); }
+
+/* ===== Botões ===== */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--s-2); min-height:44px; min-width:44px; padding:var(--s-2) var(--s-4); border-radius:var(--r-sm); font-weight:600; font-size:14px; line-height:1.3; text-align:center; cursor:pointer; border:1px solid transparent; transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease); }
+.btn-primary { background:var(--accent); color:var(--on-accent); }
+.btn-primary:hover { filter:brightness(1.08); }
+.btn-ghost { background:transparent; border-color:var(--border); color:var(--text); }
+.btn-ghost:hover { border-color:var(--accent); }
+.btn-ghost[aria-pressed="true"] { background:var(--accent-soft); border-color:var(--accent); }
+
+/* ===== Hero ===== */
+.hero { background:radial-gradient(60% 80% at 50% 0%, var(--accent-soft), transparent); }
+.topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0 var(--s-5); padding-block:var(--s-1); border-bottom:1px solid var(--border); font-size:13px; color:var(--text-muted); }
+.topline .meta { font-family:var(--font-mono); font-variant-numeric:tabular-nums; padding-block:10px; }
+.topnav { display:flex; flex-wrap:wrap; gap:0 20px; }
+.topnav a { display:inline-flex; align-items:center; min-height:44px; min-width:44px; color:var(--text); font-weight:600; text-decoration:none; transition:color var(--dur) var(--ease); }
+.topnav a:hover { color:var(--accent); }
+.hero-main { display:flex; flex-wrap:wrap; align-items:flex-end; gap:var(--s-5) 56px; padding-block:40px 48px; }
+.brand { flex:0 0 auto; }
+.brand .micro { margin-bottom:var(--s-3); }
+.wordmark { font:400 clamp(140px,20vw,260px)/.8 var(--font-display); text-transform:uppercase; letter-spacing:.01em; }
+.goldbar { display:block; width:72px; height:6px; margin-top:18px; border-radius:3px; background:var(--gold); }
+.news { flex:1 1 420px; min-width:0; padding-bottom:6px; }
+.news .micro { color:var(--gold); margin-bottom:var(--s-3); }
+.headline { font:400 clamp(32px,3.6vw,48px)/1.05 var(--font-display); text-transform:uppercase; overflow-wrap:break-word; }
+.subtitle { margin-top:var(--s-4); max-width:560px; font-size:18px; color:var(--text-muted); }
+
+/* ===== Seções ===== */
+section.block { padding-top:56px; }
+.sec-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--s-2) var(--s-4); margin-bottom:var(--s-5); }
+.sec-n { font:600 14px/1 var(--font-mono); color:var(--gold); }
+.sec-t { font:400 clamp(40px,5vw,64px)/.95 var(--font-display); text-transform:uppercase; letter-spacing:.01em; }
+.sec-k { font-size:15px; color:var(--text-muted); }
+.is-win { color:var(--win); } .is-loss { color:var(--loss); }
+
+/* ===== 01 Placar ===== */
+.board { display:grid; grid-template-columns:minmax(0,1fr); background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); overflow:hidden; }
+.stat { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:var(--s-1) var(--s-4); padding:var(--s-4) 20px; border-top:1px solid var(--border); min-width:0; }
+.stat:first-child { border-top:0; }
+.stat dd { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:flex-end; gap:0 6px; font:400 clamp(44px,4.6vw,64px)/1 var(--font-display); font-variant-numeric:tabular-nums; min-width:0; }
+.stat dd small { font:600 14px/1.2 var(--font-body); color:var(--text-muted); }
+.form-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px var(--s-4); padding-top:var(--s-4); }
+.pips { display:flex; flex-wrap:wrap; gap:4px; }
+.pip { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; font:600 12px/1 var(--font-mono); color:var(--bg); background:var(--loss); }
+.pip.win { background:var(--win); }
+
+/* ===== 02 Jogadores ===== */
+.players { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap:var(--s-4); }
+.player { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:20px; display:flex; flex-direction:column; gap:var(--s-4); min-width:0; transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.player:hover { transform:translateY(-2px); box-shadow:var(--shadow-2); border-color:var(--accent); }
+.player.is-filtered { border:2px solid var(--accent); padding:19px; }
+.player-top { display:flex; align-items:flex-start; gap:var(--s-3); min-width:0; }
+.player-id { flex:1; min-width:0; }
+.player-name { font:400 48px/.95 var(--font-display); text-transform:uppercase; overflow-wrap:anywhere; }
+.riot-id { margin-top:6px; font-size:14px; color:var(--text-muted); overflow-wrap:anywhere; }
+.riot-id b { color:var(--text); font-weight:600; }
+.riot-id .tag { white-space:nowrap; }
+.role { flex:none; font:600 12px/1.3 var(--font-mono); letter-spacing:.06em; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-pill); padding:4px 10px; }
+.bio { font-size:15px; font-style:italic; color:var(--text-soft); }
+.nums { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--s-2); padding-block:14px; border-block:1px solid var(--border); }
+.nums dt { font-size:12px; color:var(--text-muted); }
+.nums dd { margin-top:2px; font:400 32px/1 var(--font-display); font-variant-numeric:tabular-nums; }
+.lbl { margin-bottom:6px; }
+.champs { font-size:14px; font-weight:600; overflow-wrap:anywhere; }
+.champs .cnt { font-family:var(--font-mono); font-weight:500; color:var(--text-muted); }
+.champs .sep { color:var(--text-muted); font-weight:400; }
+.player .btn { width:100%; margin-top:auto; }
+.skel { border-radius:var(--r-lg); min-height:340px; background:linear-gradient(90deg, var(--surface-2) 0%, var(--surface) 50%, var(--surface-2) 100%); background-size:200% 100%; animation:shimmer 1.2s linear infinite; }
+
+/* ===== 03 Destaques ===== */
+.highlights { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--s-4); }
+.highlight { background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--gold); border-radius:var(--r-md); padding:22px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+.highlight.lead { background:var(--surface-2); }
+.hl-k { font-size:12px; line-height:1.3; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gold); }
+.hl-h { margin-top:4px; font:400 44px/1 var(--font-display); text-transform:uppercase; overflow-wrap:anywhere; }
+.lead .hl-h { font-size:64px; line-height:.95; }
+.hl-p { margin-top:6px; font-size:15px; color:var(--text-muted); }
+.hl-p b { color:var(--text); font-weight:600; }
+.hl-empty { margin-top:var(--s-2); font-style:italic; color:var(--text-muted); }
+
+/* ===== 04 Histórico: filtros ===== */
+.filters { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:var(--s-4); display:flex; flex-direction:column; gap:var(--s-3); margin-bottom:var(--s-4); }
+.filt { border:0; padding:0; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.filt legend { padding:0; margin-bottom:6px; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); }
+.chip { position:relative; min-height:44px; min-width:44px; padding:0 14px; border:1px solid var(--border); border-radius:var(--r-pill); background:var(--surface-2); color:var(--text); font-size:14px; font-weight:500; line-height:1.2; cursor:pointer; transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease); }
+.chip:hover { border-color:var(--accent); }
+.chip[aria-pressed="true"] { background:var(--accent-soft); border-color:var(--accent); font-weight:600; }
+.chip:disabled { cursor:not-allowed; opacity:.55; }
+.chip:disabled:hover { border-color:var(--border); }
+.filters-end { display:flex; flex-wrap:wrap; align-items:center; gap:var(--s-3) 20px; min-height:57px; padding-top:var(--s-3); border-top:1px solid var(--border); }
+.counter { font-size:14px; font-weight:600; }
+
+/* ===== 04 Histórico: partidas ===== */
+.matches { display:flex; flex-direction:column; gap:var(--s-2); }
+/* Lista longa (> 60 partidas): linhas fora da tela não entram no layout/pintura (RNF-06, ~200 no celular).
+   O padding/margem de 4px deixa espaço para o anel de foco, que a contenção cortaria. */
+.matches.is-long > li { content-visibility:auto; contain-intrinsic-size:auto 132px; padding:4px; margin:-4px; }
+.match { background:var(--surface); border-radius:var(--r-md); border-left:4px solid var(--loss); box-shadow:var(--shadow-1); min-width:0; }
+.match.win { border-left-color:var(--win); }
+.match-head { display:grid; grid-template-columns:44px minmax(0,1fr) auto; grid-template-areas:"res meta when" "sq sq sq" "tog tog tog"; gap:10px var(--s-3); align-items:center; width:100%; min-height:72px; padding:var(--s-3); background:transparent; border:0; border-radius:0 var(--r-md) var(--r-md) 0; text-align:left; cursor:pointer; scroll-margin-block:var(--s-4); transition:background-color var(--dur) var(--ease); }
+.match-head:hover, .match.open .match-head { background:var(--surface-2); }
+.match.open .match-head { border-bottom-right-radius:0; }
+.res { grid-area:res; display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:8px; font:400 24px/1 var(--font-display); color:var(--bg); background:var(--loss); }
+.match.win .res { background:var(--win); }
+.m-meta { grid-area:meta; display:flex; flex-direction:column; min-width:0; font-size:12px; line-height:1.4; color:var(--text-muted); }
+.m-meta .result { font-size:14px; font-weight:700; color:var(--loss); }
+.match.win .m-meta .result { color:var(--win); }
+.when { grid-area:when; display:flex; flex-direction:column; align-items:flex-end; text-align:right; font-size:12px; line-height:1.35; color:var(--text-muted); white-space:nowrap; }
+.when b { font-size:14px; font-weight:600; color:var(--text); }
+.squad { grid-area:sq; display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 18px; min-width:0; }
+.pick { font-size:14px; min-width:0; overflow-wrap:anywhere; }
+.pick b { font-weight:600; }
+.pick i { font:500 13px var(--font-mono); font-style:normal; font-variant-numeric:tabular-nums; color:var(--text-muted); margin-left:4px; white-space:nowrap; }
+.vs { font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); }
+.tog { grid-area:tog; justify-self:start; display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--text-muted); white-space:nowrap; }
+.chev { width:14px; height:14px; flex:none; transition:transform 220ms var(--ease); }
+.match.open .chev { transform:rotate(180deg); }
+
+/* painel expandido */
+.panel { display:grid; grid-template-rows:0fr; opacity:0; transition:grid-template-rows 220ms var(--ease), opacity 220ms var(--ease); }
+.panel.shown { grid-template-rows:1fr; opacity:1; }
+.panel > .panel-inner { overflow:hidden; min-width:0; }
+.panel-body { padding:var(--s-3) var(--s-3) var(--s-4) var(--s-4); background:var(--surface-2); border-bottom-right-radius:var(--r-md); display:flex; flex-direction:column; gap:var(--s-4); }
+.team h3 { font-size:14px; font-weight:600; margin-bottom:var(--s-2); }
+.team h3 .r-win { color:var(--win); } .team h3 .r-loss { color:var(--loss); }
+.match-meta { font:500 12px/1.5 var(--font-mono); color:var(--text-muted); overflow-wrap:anywhere; }
+
+/* imagens / fallback */
+.img { border-radius:var(--r-sm); background:var(--surface); flex:none; object-fit:cover; }
+.fallback { display:inline-flex; align-items:center; justify-content:center; flex:none; border-radius:var(--r-sm); background:var(--surface); border:1px solid var(--border); color:var(--text-muted); font-size:12px; font-weight:700; line-height:1; letter-spacing:.02em; overflow:hidden; }
+.items { display:flex; flex-wrap:nowrap; gap:3px; }
+.items .img, .items .fallback, .item-empty { border-radius:4px; }
+.items .fallback { letter-spacing:-.04em; }
+.item-empty { flex:none; background:var(--surface); border:1px dashed var(--border); }
+
+/* participantes: cartões (<768) */
+.pcards { display:flex; flex-direction:column; gap:var(--s-2); }
+.pcard { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-sm); padding:var(--s-3); display:flex; flex-direction:column; gap:var(--s-2); min-width:0; }
+.pcard.spk, tr.spk { background:var(--spk-row); }
+.pcard-top { display:flex; align-items:center; gap:var(--s-2); min-width:0; }
+.pcard-who { min-width:0; flex:1; font-size:14px; line-height:1.3; }
+.rid { overflow-wrap:anywhere; }
+.rid .tag { color:var(--text-muted); }
+.spk .rid-name { font-weight:600; }
+.badge-spk { display:inline-block; margin-left:var(--s-1); padding:0 6px; border:1px solid var(--gold); color:var(--gold); border-radius:var(--r-pill); font-size:11px; font-weight:600; letter-spacing:.06em; line-height:16px; vertical-align:1px; }
+.pcard dl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--s-1) var(--s-2); font-size:13px; }
+.pcard dt { color:var(--text-muted); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+.pcard dd { font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-weight:500; }
+
+/* participantes: tabela (≥768) */
+.table-wrap { display:none; overflow-x:auto; }
+/* sombra nas bordas só quando há o que rolar (fundo "local" cobre a sombra nas pontas) */
+.table-wrap { background:linear-gradient(to right, var(--surface-2) 30%, transparent) 0 0 / 32px 100% no-repeat local, linear-gradient(to left, var(--surface-2) 30%, transparent) 100% 0 / 32px 100% no-repeat local, radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / .28), transparent) 0 0 / 12px 100% no-repeat scroll, radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / .28), transparent) 100% 0 / 12px 100% no-repeat scroll; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th { text-align:left; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); padding:var(--s-1) var(--s-2); border-bottom:1px solid var(--border); white-space:nowrap; }
+td { padding:6px var(--s-2); border-bottom:1px solid var(--border); vertical-align:middle; white-space:nowrap; }
+td.n, th.n { text-align:right; }
+td.n, td.k { font:500 13px var(--font-mono); font-variant-numeric:tabular-nums; }
+tbody tr:last-child td { border-bottom:0; }
+.champ-cell { display:flex; align-items:center; gap:var(--s-2); }
+
+/* estados */
+.state { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:var(--s-5) var(--s-4); display:flex; flex-direction:column; align-items:flex-start; gap:var(--s-3); }
+.state.error { border-color:var(--loss); }
+.skeleton { height:72px; border-radius:var(--r-md); background:linear-gradient(90deg, var(--surface-2) 0%, var(--surface) 50%, var(--surface-2) 100%); background-size:200% 100%; animation:shimmer 1.2s linear infinite; }
+@keyframes shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
+
+/* ===== Rodapé ===== */
+footer { margin-top:56px; background:var(--surface); border-top:1px solid var(--border); padding-block:40px; font-size:14px; color:var(--text-muted); }
+.foot { display:flex; flex-wrap:wrap; align-items:flex-start; gap:var(--s-5) 56px; }
+.foot-mark { flex:0 0 auto; font:400 64px/.85 var(--font-display); text-transform:uppercase; color:var(--text); }
+.foot-legal { flex:1 1 480px; min-width:0; display:flex; flex-direction:column; gap:var(--s-3); }
+.pill-gold { align-self:flex-start; padding:2px var(--s-3); border-radius:var(--r-pill); background:var(--gold-soft); color:var(--gold); font-size:12px; font-weight:600; }
+.foot-credit { display:flex; flex-direction:column; align-items:flex-start; gap:var(--s-2); }
+.foot-credit a { display:inline-flex; align-items:center; min-height:44px; font-weight:600; }
+
+/* ===== ≥768 ===== */
+@media (min-width:768px) {
+  .container { padding-inline:var(--s-5); }
+  .hero-main { padding-block:56px 64px; }
+  .brand .micro { margin-bottom:var(--s-4); }
+  section.block { padding-top:72px; }
+  footer { margin-top:72px; }
+  .board { grid-template-columns:repeat(5,minmax(0,1fr)); }
+  .stat { display:block; padding:20px var(--s-4); border-top:0; border-left:1px solid var(--border); }
+  .stat:first-child { border-left:0; }
+  .stat dt { margin-bottom:6px; }
+  .stat dd { justify-content:flex-start; }
+  .player { padding:var(--s-5); }
+  .player.is-filtered { padding:23px; }
+  .highlights { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .filt legend { float:left; width:96px; margin:0 var(--s-2) 0 0; }
+  .chip { min-height:40px; }
+  .chip::before { content:""; position:absolute; inset:-3px 0; }
+  .match-head { grid-template-columns:44px minmax(0,1fr) auto auto; grid-template-areas:"res meta when tog" ". sq sq sq"; gap:10px 20px; padding:var(--s-3) 20px var(--s-3) var(--s-4); }
+  .tog { justify-self:end; }
+  .pcards { display:none; }
+  .table-wrap { display:block; }
+}
+@media (min-width:768px) and (max-width:1023.98px) {
+  .stat dt { min-height:2.6em; } /* rótulos que quebram em 2 linhas não desalinham os valores */
+}
+@media (min-width:1024px) {
+  .stat { padding:20px var(--s-5); }
+  .match-head { grid-template-columns:44px 160px minmax(0,1fr) 112px auto; grid-template-areas:"res meta sq when tog"; gap:10px 22px; }
+  .when { align-items:flex-start; text-align:left; }
+}
+@media (min-width:1200px) {
+  .container { padding-inline:var(--s-6); }
+  .highlights { grid-template-columns:repeat(4,minmax(0,1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important; scroll-behavior:auto !important; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#historico">Pular para o histórico</a>
+
+<header class="hero" id="topo" tabindex="-1">
+  <div class="container">
+    <div class="topline">
+      <p class="meta" id="hero-meta">Carregando…</p>
+      <nav class="topnav" aria-label="Seções">
+        <a href="#placar">Placar</a>
+        <a href="#jogadores">Jogadores</a>
+        <a href="#destaques">Destaques</a>
+        <a href="#historico">Histórico</a>
+      </nav>
+    </div>
+    <div class="hero-main">
+      <div class="brand">
+        <p class="micro">Grupo de LoL</p>
+        <h1 class="wordmark">SPK</h1>
+        <span class="goldbar" aria-hidden="true"></span>
+      </div>
+      <div class="news">
+        <p class="micro">Manchete da quinzena</p>
+        <p class="headline" id="headline">Carregando a manchete…</p>
+        <p class="subtitle">Cinco amigos, uma fila, muitas tiltadas. O histórico das nossas partidas juntos: quem carregou, quem afundou e qual dupla não perde.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="block" id="placar" aria-labelledby="h-placar" tabindex="-1">
+    <div class="container">
+      <div class="sec-head"><span class="sec-n" aria-hidden="true">01</span><h2 class="sec-t" id="h-placar">Placar</h2><p class="sec-k">Os números do grupo jogando junto</p></div>
+      <dl class="board" id="board"></dl>
+      <div class="form-row" id="group-form"></div>
+    </div>
+  </section>
+
+  <section class="block" id="jogadores" aria-labelledby="h-players" tabindex="-1">
+    <div class="container">
+      <div class="sec-head"><span class="sec-n" aria-hidden="true">02</span><h2 class="sec-t" id="h-players">Jogadores</h2><p class="sec-k">Quem joga onde, e como está indo</p></div>
+      <div class="players" id="players"></div>
+    </div>
+  </section>
+
+  <section class="block" id="destaques" aria-labelledby="h-highlights" tabindex="-1">
+    <div class="container">
+      <div class="sec-head"><span class="sec-n" aria-hidden="true">03</span><h2 class="sec-t" id="h-highlights">Destaques</h2><p class="sec-k">Quem carregou, quem jogou junto, quem viu tudo</p></div>
+      <div class="highlights" id="highlights"></div>
+    </div>
+  </section>
+
+  <section class="block" id="historico" aria-labelledby="h-history" tabindex="-1">
+    <div class="container">
+      <div class="sec-head"><span class="sec-n" aria-hidden="true">04</span><h2 class="sec-t" id="h-history">Histórico</h2><p class="sec-k">Mais recente primeiro. Toque numa partida para ver os 10 jogadores.</p></div>
+      <form class="filters" role="search" aria-label="Filtrar partidas" id="filters">
+        <fieldset class="filt" id="fs-player"><legend>Jogador</legend></fieldset>
+        <fieldset class="filt" id="fs-result"><legend>Resultado</legend></fieldset>
+        <fieldset class="filt" id="fs-queue"><legend>Fila</legend></fieldset>
+        <div class="filters-end">
+          <p class="counter" id="counter" aria-live="polite"></p>
+          <button type="button" class="btn btn-ghost" id="clear" hidden>Limpar filtros</button>
+        </div>
+      </form>
+      <div id="list-state"></div>
+      <ol class="matches" id="matches" aria-labelledby="h-history"></ol>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container foot">
+    <p class="foot-mark" aria-hidden="true">SPK</p>
+    <div class="foot-legal">
+      <span class="pill-gold" id="source-label">Dados de exemplo</span>
+      <p id="source-note">Partidas, jogadores e bios fictícios, só para demonstração. A integração com a Riot API ainda não está ativa.</p>
+      <p>SPK não é endossado pela Riot Games e não reflete as opiniões ou visões da Riot Games ou de qualquer pessoa oficialmente envolvida na produção ou no gerenciamento de propriedades da Riot Games. Riot Games e todas as propriedades associadas são marcas comerciais ou marcas registradas da Riot Games, Inc.</p>
+    </div>
+    <div class="foot-credit">
+      <p>Feito pelo SPK · <span id="year">2026</span></p>
+      <a href="#topo">Voltar ao topo</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Dados de exemplo. NÃO edite à mão: edite data/*.json e rode `node scripts/sincronizar-dados.mjs`. -->
+<script type="application/json" id="spk-data">{"players":[{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","displayName":"Ana","mainRole":"MIDDLE","profileIconId":4568,"bio":"Jura que o flash estava em cooldown."},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","displayName":"Bia","mainRole":"JUNGLE","profileIconId":5023,"bio":"Gank no bot aos 3:15, todo santo jogo."},{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","displayName":"Caio","mainRole":"TOP","profileIconId":4655,"bio":"Ilha particular no topo, aceita visitas raras."},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","displayName":"Duda","mainRole":"BOTTOM","profileIconId":5367,"bio":"CS antes de tudo, inclusive da luta."},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","displayName":"Léo","mainRole":"UTILITY","profileIconId":4834,"bio":"Compra sentinela de controle por esporte."}],"matches":[{"metadata":{"matchId":"BR1_3094420678","participants":["sample-puuid-caio","sample-puuid-bia","sample-puuid-ana","sample-puuid-duda","sample-puuid-leo","sample-puuid-rnd-001","sample-puuid-rnd-002","sample-puuid-rnd-003","sample-puuid-rnd-004","sample-puuid-rnd-005"]},"info":{"gameCreation":1790464237267,"gameDuration":2246,"gameVersion":"26.19.1","queueId":440,"participants":[{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":100,"championName":"Garen","teamPosition":"TOP","kills":6,"deaths":4,"assists":10,"totalMinionsKilled":254,"goldEarned":18645,"totalDamageDealtToChampions":39243,"visionScore":22,"win":true,"item0":3111,"item1":3742,"item2":3068,"item3":6333,"item4":3065,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":100,"championName":"Vi","teamPosition":"JUNGLE","kills":14,"deaths":2,"assists":12,"totalMinionsKilled":173,"goldEarned":20485,"totalDamageDealtToChampions":36975,"visionScore":42,"win":true,"item0":3158,"item1":3053,"item2":6694,"item3":3071,"item4":3814,"item5":0,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":100,"championName":"Orianna","teamPosition":"MIDDLE","kills":15,"deaths":4,"assists":10,"totalMinionsKilled":269,"goldEarned":22290,"totalDamageDealtToChampions":47195,"visionScore":22,"win":true,"item0":3158,"item1":4646,"item2":3135,"item3":3089,"item4":3165,"item5":3102,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":100,"championName":"Jinx","teamPosition":"BOTTOM","kills":9,"deaths":4,"assists":7,"totalMinionsKilled":306,"goldEarned":18980,"totalDamageDealtToChampions":57166,"visionScore":23,"win":true,"item0":3009,"item1":3085,"item2":3072,"item3":3046,"item4":3033,"item5":0,"item6":3363},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":100,"championName":"Nautilus","teamPosition":"UTILITY","kills":2,"deaths":2,"assists":27,"totalMinionsKilled":50,"goldEarned":13825,"totalDamageDealtToChampions":15356,"visionScore":75,"win":true,"item0":3876,"item1":3158,"item2":3109,"item3":3107,"item4":3222,"item5":3190,"item6":3364},{"puuid":"sample-puuid-rnd-001","riotIdGameName":"MaeDoFeeder","riotIdTagline":"BR1","teamId":200,"championName":"Jax","teamPosition":"TOP","kills":3,"deaths":9,"assists":6,"totalMinionsKilled":245,"goldEarned":15115,"totalDamageDealtToChampions":43155,"visionScore":18,"win":false,"item0":3047,"item1":3071,"item2":3075,"item3":3065,"item4":3068,"item5":6631,"item6":3340},{"puuid":"sample-puuid-rnd-002","riotIdGameName":"KalistaLover","riotIdTagline":"BR1","teamId":200,"championName":"Graves","teamPosition":"JUNGLE","kills":4,"deaths":6,"assists":6,"totalMinionsKilled":241,"goldEarned":14690,"totalDamageDealtToChampions":37073,"visionScore":48,"win":false,"item0":3111,"item1":6692,"item2":6333,"item3":3814,"item4":3142,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-003","riotIdGameName":"ZedOuNada","riotIdTagline":"BR1","teamId":200,"championName":"Annie","teamPosition":"MIDDLE","kills":3,"deaths":7,"assists":5,"totalMinionsKilled":283,"goldEarned":14135,"totalDamageDealtToChampions":38450,"visionScore":31,"win":false,"item0":3158,"item1":3135,"item2":4646,"item3":3089,"item4":3102,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-004","riotIdGameName":"PudimDeBaron","riotIdTagline":"BR1","teamId":200,"championName":"Ashe","teamPosition":"BOTTOM","kills":5,"deaths":16,"assists":6,"totalMinionsKilled":276,"goldEarned":16645,"totalDamageDealtToChampions":48259,"visionScore":22,"win":false,"item0":3009,"item1":3072,"item2":3031,"item3":3033,"item4":6672,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-005","riotIdGameName":"OTPdeYasuo","riotIdTagline":"BR2","teamId":200,"championName":"Senna","teamPosition":"UTILITY","kills":1,"deaths":8,"assists":12,"totalMinionsKilled":49,"goldEarned":10715,"totalDamageDealtToChampions":20032,"visionScore":95,"win":false,"item0":3869,"item1":3111,"item2":3222,"item3":3190,"item4":2065,"item5":3504,"item6":3364}]}},{"metadata":{"matchId":"BR1_3097735166","participants":["sample-puuid-caio","sample-puuid-bia","sample-puuid-ana","sample-puuid-duda","sample-puuid-leo","sample-puuid-rnd-006","sample-puuid-rnd-007","sample-puuid-rnd-008","sample-puuid-rnd-009","sample-puuid-rnd-010"]},"info":{"gameCreation":1790466763912,"gameDuration":2045,"gameVersion":"26.19.1","queueId":440,"participants":[{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":100,"championName":"Aatrox","teamPosition":"TOP","kills":5,"deaths":8,"assists":3,"totalMinionsKilled":215,"goldEarned":13815,"totalDamageDealtToChampions":41591,"visionScore":15,"win":false,"item0":3111,"item1":3068,"item2":3075,"item3":6333,"item4":3053,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":100,"championName":"Vi","teamPosition":"JUNGLE","kills":2,"deaths":11,"assists":7,"totalMinionsKilled":166,"goldEarned":12535,"totalDamageDealtToChampions":26576,"visionScore":48,"win":false,"item0":3047,"item1":6694,"item2":3142,"item3":6333,"item4":6692,"item5":3071,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":100,"championName":"Orianna","teamPosition":"MIDDLE","kills":7,"deaths":7,"assists":4,"totalMinionsKilled":276,"goldEarned":16050,"totalDamageDealtToChampions":32221,"visionScore":27,"win":false,"item0":3158,"item1":3157,"item2":4645,"item3":3135,"item4":3089,"item5":0,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":100,"championName":"Jinx","teamPosition":"BOTTOM","kills":10,"deaths":10,"assists":5,"totalMinionsKilled":255,"goldEarned":16425,"totalDamageDealtToChampions":33222,"visionScore":26,"win":false,"item0":3009,"item1":3031,"item2":6672,"item3":3094,"item4":3033,"item5":0,"item6":3363},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":100,"championName":"Thresh","teamPosition":"UTILITY","kills":2,"deaths":9,"assists":14,"totalMinionsKilled":38,"goldEarned":10425,"totalDamageDealtToChampions":19826,"visionScore":102,"win":false,"item0":3869,"item1":3158,"item2":3107,"item3":3109,"item4":2065,"item5":3504,"item6":3364},{"puuid":"sample-puuid-rnd-006","riotIdGameName":"FlashNoMuro","riotIdTagline":"BR1","teamId":200,"championName":"Fiora","teamPosition":"TOP","kills":4,"deaths":6,"assists":8,"totalMinionsKilled":214,"goldEarned":16320,"totalDamageDealtToChampions":34150,"visionScore":20,"win":true,"item0":3047,"item1":3053,"item2":3071,"item3":6631,"item4":3748,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-007","riotIdGameName":"CapivaraTank","riotIdTagline":"BR1","teamId":200,"championName":"Hecarim","teamPosition":"JUNGLE","kills":10,"deaths":4,"assists":9,"totalMinionsKilled":215,"goldEarned":16590,"totalDamageDealtToChampions":27353,"visionScore":40,"win":true,"item0":3158,"item1":6692,"item2":3053,"item3":3071,"item4":6333,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-008","riotIdGameName":"Gankless","riotIdTagline":"BR1","teamId":200,"championName":"Yasuo","teamPosition":"MIDDLE","kills":14,"deaths":4,"assists":12,"totalMinionsKilled":228,"goldEarned":19185,"totalDamageDealtToChampions":46025,"visionScore":23,"win":true,"item0":3158,"item1":3102,"item2":3135,"item3":3089,"item4":3165,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-009","riotIdGameName":"MidOrFeed","riotIdTagline":"BR1","teamId":200,"championName":"Ashe","teamPosition":"BOTTOM","kills":13,"deaths":5,"assists":11,"totalMinionsKilled":233,"goldEarned":19480,"totalDamageDealtToChampions":37440,"visionScore":18,"win":true,"item0":3006,"item1":3046,"item2":3094,"item3":3033,"item4":3031,"item5":3085,"item6":3363},{"puuid":"sample-puuid-rnd-010","riotIdGameName":"PaoDeQueijoGG","riotIdTagline":"MG1","teamId":200,"championName":"Senna","teamPosition":"UTILITY","kills":4,"deaths":7,"assists":22,"totalMinionsKilled":38,"goldEarned":13335,"totalDamageDealtToChampions":19546,"visionScore":74,"win":true,"item0":3877,"item1":3117,"item2":6617,"item3":3050,"item4":3504,"item5":3109,"item6":3364}]}},{"metadata":{"matchId":"BR1_3099743647","participants":["sample-puuid-rnd-014","sample-puuid-rnd-015","sample-puuid-rnd-016","sample-puuid-rnd-017","sample-puuid-rnd-018","sample-puuid-rnd-011","sample-puuid-bia","sample-puuid-ana","sample-puuid-rnd-012","sample-puuid-rnd-013"]},"info":{"gameCreation":1790555413404,"gameDuration":2073,"gameVersion":"26.19.1","queueId":420,"participants":[{"puuid":"sample-puuid-rnd-014","riotIdGameName":"LuluDaPraia","riotIdTagline":"BR1","teamId":100,"championName":"Fiora","teamPosition":"TOP","kills":2,"deaths":9,"assists":5,"totalMinionsKilled":275,"goldEarned":13375,"totalDamageDealtToChampions":41867,"visionScore":23,"win":false,"item0":3047,"item1":6333,"item2":3742,"item3":3068,"item4":3053,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-015","riotIdGameName":"ReiDoSplit","riotIdTagline":"BR1","teamId":100,"championName":"Kayn","teamPosition":"JUNGLE","kills":2,"deaths":4,"assists":9,"totalMinionsKilled":208,"goldEarned":13505,"totalDamageDealtToChampions":30441,"visionScore":43,"win":false,"item0":3111,"item1":6692,"item2":3071,"item3":3156,"item4":6333,"item5":3142,"item6":3364},{"puuid":"sample-puuid-rnd-016","riotIdGameName":"NaoDaFF","riotIdTagline":"BR1","teamId":100,"championName":"Katarina","teamPosition":"MIDDLE","kills":9,"deaths":7,"assists":7,"totalMinionsKilled":224,"goldEarned":16425,"totalDamageDealtToChampions":48220,"visionScore":27,"win":false,"item0":3020,"item1":6655,"item2":3089,"item3":3135,"item4":3157,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-017","riotIdGameName":"Dragao Infernal","riotIdTagline":"BR1","teamId":100,"championName":"Ashe","teamPosition":"BOTTOM","kills":8,"deaths":10,"assists":4,"totalMinionsKilled":244,"goldEarned":16035,"totalDamageDealtToChampions":45281,"visionScore":24,"win":false,"item0":3009,"item1":3031,"item2":3094,"item3":3036,"item4":6672,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-018","riotIdGameName":"EzrealDePijama","riotIdTagline":"BR1","teamId":100,"championName":"Nami","teamPosition":"UTILITY","kills":1,"deaths":10,"assists":10,"totalMinionsKilled":36,"goldEarned":10205,"totalDamageDealtToChampions":18011,"visionScore":103,"win":false,"item0":3877,"item1":3158,"item2":6617,"item3":3190,"item4":3107,"item5":3504,"item6":3364},{"puuid":"sample-puuid-rnd-011","riotIdGameName":"TeemoDoMal","riotIdTagline":"BR1","teamId":200,"championName":"Yorick","teamPosition":"TOP","kills":9,"deaths":4,"assists":8,"totalMinionsKilled":253,"goldEarned":18740,"totalDamageDealtToChampions":32560,"visionScore":20,"win":true,"item0":3047,"item1":3071,"item2":6333,"item3":3053,"item4":3065,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":200,"championName":"Viego","teamPosition":"JUNGLE","kills":3,"deaths":6,"assists":8,"totalMinionsKilled":186,"goldEarned":14935,"totalDamageDealtToChampions":25066,"visionScore":45,"win":true,"item0":3047,"item1":3071,"item2":6333,"item3":3142,"item4":3156,"item5":0,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":200,"championName":"Orianna","teamPosition":"MIDDLE","kills":13,"deaths":6,"assists":11,"totalMinionsKilled":215,"goldEarned":18465,"totalDamageDealtToChampions":52679,"visionScore":22,"win":true,"item0":3158,"item1":4646,"item2":6655,"item3":3089,"item4":3135,"item5":3157,"item6":3340},{"puuid":"sample-puuid-rnd-012","riotIdGameName":"SoloQSofrida","riotIdTagline":"BR1","teamId":200,"championName":"Draven","teamPosition":"BOTTOM","kills":14,"deaths":4,"assists":8,"totalMinionsKilled":248,"goldEarned":19395,"totalDamageDealtToChampions":50257,"visionScore":21,"win":true,"item0":3006,"item1":3072,"item2":3046,"item3":6672,"item4":3036,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-013","riotIdGameName":"BaronDeTerno","riotIdTagline":"BR1","teamId":200,"championName":"Braum","teamPosition":"UTILITY","kills":1,"deaths":2,"assists":19,"totalMinionsKilled":36,"goldEarned":12860,"totalDamageDealtToChampions":14514,"visionScore":86,"win":true,"item0":3876,"item1":3158,"item2":3109,"item3":3504,"item4":6617,"item5":3050,"item6":3364}]}},{"metadata":{"matchId":"BR1_3104010447","participants":["sample-puuid-caio","sample-puuid-rnd-019","sample-puuid-ana","sample-puuid-duda","sample-puuid-leo","sample-puuid-rnd-020","sample-puuid-rnd-021","sample-puuid-rnd-022","sample-puuid-rnd-023","sample-puuid-rnd-024"]},"info":{"gameCreation":1790635527522,"gameDuration":1307,"gameVersion":"26.19.1","queueId":450,"participants":[{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":100,"championName":"Leblanc","teamPosition":"","kills":13,"deaths":2,"assists":17,"totalMinionsKilled":55,"goldEarned":14095,"totalDamageDealtToChampions":48262,"visionScore":3,"win":true,"item0":3020,"item1":3135,"item2":4645,"item3":3102,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-019","riotIdGameName":"TorreTeAma","riotIdTagline":"BR1","teamId":100,"championName":"Smolder","teamPosition":"","kills":5,"deaths":5,"assists":15,"totalMinionsKilled":55,"goldEarned":11985,"totalDamageDealtToChampions":38426,"visionScore":3,"win":true,"item0":3006,"item1":3094,"item2":3033,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":100,"championName":"Camille","teamPosition":"","kills":5,"deaths":3,"assists":20,"totalMinionsKilled":50,"goldEarned":13330,"totalDamageDealtToChampions":36174,"visionScore":2,"win":true,"item0":3111,"item1":3071,"item2":6333,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":100,"championName":"Thresh","teamPosition":"","kills":13,"deaths":7,"assists":13,"totalMinionsKilled":63,"goldEarned":14190,"totalDamageDealtToChampions":43410,"visionScore":2,"win":true,"item0":3158,"item1":3190,"item2":2065,"item3":3107,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":100,"championName":"Leona","teamPosition":"","kills":12,"deaths":7,"assists":13,"totalMinionsKilled":54,"goldEarned":13340,"totalDamageDealtToChampions":39045,"visionScore":4,"win":true,"item0":3111,"item1":3222,"item2":3504,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-020","riotIdGameName":"ArrozComPing","riotIdTagline":"BR1","teamId":200,"championName":"Pyke","teamPosition":"","kills":4,"deaths":9,"assists":11,"totalMinionsKilled":64,"goldEarned":10355,"totalDamageDealtToChampions":33068,"visionScore":3,"win":false,"item0":3111,"item1":3222,"item2":3190,"item3":3107,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-021","riotIdGameName":"Wardinho","riotIdTagline":"BR1","teamId":200,"championName":"Bard","teamPosition":"","kills":4,"deaths":12,"assists":14,"totalMinionsKilled":62,"goldEarned":10110,"totalDamageDealtToChampions":44890,"visionScore":3,"win":false,"item0":3117,"item1":3222,"item2":6617,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-022","riotIdGameName":"TiltProof","riotIdTagline":"BR1","teamId":200,"championName":"Elise","teamPosition":"","kills":4,"deaths":8,"assists":7,"totalMinionsKilled":58,"goldEarned":9920,"totalDamageDealtToChampions":45847,"visionScore":3,"win":false,"item0":3047,"item1":6694,"item2":3814,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-023","riotIdGameName":"Pentakilla","riotIdTagline":"BR1","teamId":200,"championName":"Hecarim","teamPosition":"","kills":7,"deaths":5,"assists":14,"totalMinionsKilled":50,"goldEarned":11975,"totalDamageDealtToChampions":35940,"visionScore":4,"win":false,"item0":3158,"item1":3142,"item2":3156,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-024","riotIdGameName":"Mobilizado","riotIdTagline":"BR1","teamId":200,"championName":"XinZhao","teamPosition":"","kills":5,"deaths":14,"assists":8,"totalMinionsKilled":64,"goldEarned":10190,"totalDamageDealtToChampions":43962,"visionScore":3,"win":false,"item0":3111,"item1":3142,"item2":6694,"item3":3814,"item4":0,"item5":0,"item6":0}]}},{"metadata":{"matchId":"BR1_3106883992","participants":["sample-puuid-rnd-028","sample-puuid-rnd-029","sample-puuid-rnd-030","sample-puuid-rnd-031","sample-puuid-rnd-032","sample-puuid-rnd-025","sample-puuid-rnd-026","sample-puuid-rnd-027","sample-puuid-duda","sample-puuid-leo"]},"info":{"gameCreation":1790730358809,"gameDuration":1884,"gameVersion":"26.19.1","queueId":420,"participants":[{"puuid":"sample-puuid-rnd-028","riotIdGameName":"XablauTop","riotIdTagline":"BR1","teamId":100,"championName":"Camille","teamPosition":"TOP","kills":3,"deaths":5,"assists":6,"totalMinionsKilled":185,"goldEarned":14200,"totalDamageDealtToChampions":35224,"visionScore":23,"win":true,"item0":3111,"item1":3071,"item2":3053,"item3":6631,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-029","riotIdGameName":"GankDoNada","riotIdTagline":"BR1","teamId":100,"championName":"Hecarim","teamPosition":"JUNGLE","kills":5,"deaths":4,"assists":8,"totalMinionsKilled":190,"goldEarned":15620,"totalDamageDealtToChampions":28530,"visionScore":28,"win":true,"item0":3111,"item1":6692,"item2":3071,"item3":6694,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-030","riotIdGameName":"Jungle Diff","riotIdTagline":"BR1","teamId":100,"championName":"Yone","teamPosition":"MIDDLE","kills":9,"deaths":3,"assists":6,"totalMinionsKilled":227,"goldEarned":16935,"totalDamageDealtToChampions":37793,"visionScore":26,"win":true,"item0":3020,"item1":3157,"item2":3165,"item3":3135,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-031","riotIdGameName":"Kitesurf","riotIdTagline":"BR1","teamId":100,"championName":"Varus","teamPosition":"BOTTOM","kills":10,"deaths":6,"assists":8,"totalMinionsKilled":235,"goldEarned":18010,"totalDamageDealtToChampions":30154,"visionScore":21,"win":true,"item0":3006,"item1":3046,"item2":3033,"item3":3094,"item4":3072,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-032","riotIdGameName":"UltDoAlem","riotIdTagline":"BR1","teamId":100,"championName":"Nami","teamPosition":"UTILITY","kills":3,"deaths":4,"assists":12,"totalMinionsKilled":38,"goldEarned":11410,"totalDamageDealtToChampions":16612,"visionScore":62,"win":true,"item0":3877,"item1":3158,"item2":3190,"item3":6617,"item4":3050,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-025","riotIdGameName":"CafeComCombo","riotIdTagline":"BR1","teamId":200,"championName":"Mordekaiser","teamPosition":"TOP","kills":6,"deaths":8,"assists":5,"totalMinionsKilled":177,"goldEarned":14070,"totalDamageDealtToChampions":37975,"visionScore":18,"win":false,"item0":3111,"item1":3068,"item2":3071,"item3":3065,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-026","riotIdGameName":"MinionDeOuro","riotIdTagline":"BR1","teamId":200,"championName":"Kayn","teamPosition":"JUNGLE","kills":5,"deaths":8,"assists":7,"totalMinionsKilled":202,"goldEarned":12970,"totalDamageDealtToChampions":29080,"visionScore":44,"win":false,"item0":3158,"item1":3071,"item2":3053,"item3":6333,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-027","riotIdGameName":"Sopa de Poro","riotIdTagline":"BR1","teamId":200,"championName":"Yasuo","teamPosition":"MIDDLE","kills":7,"deaths":6,"assists":6,"totalMinionsKilled":238,"goldEarned":14575,"totalDamageDealtToChampions":28013,"visionScore":23,"win":false,"item0":3020,"item1":3157,"item2":3135,"item3":4645,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":200,"championName":"Jinx","teamPosition":"BOTTOM","kills":2,"deaths":4,"assists":4,"totalMinionsKilled":242,"goldEarned":13895,"totalDamageDealtToChampions":45647,"visionScore":19,"win":false,"item0":3006,"item1":6672,"item2":3085,"item3":3036,"item4":0,"item5":0,"item6":3363},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":200,"championName":"Thresh","teamPosition":"UTILITY","kills":2,"deaths":4,"assists":12,"totalMinionsKilled":32,"goldEarned":9515,"totalDamageDealtToChampions":11181,"visionScore":59,"win":false,"item0":3877,"item1":3158,"item2":3190,"item3":3109,"item4":3107,"item5":0,"item6":3364}]}},{"metadata":{"matchId":"BR1_3110966978","participants":["sample-puuid-caio","sample-puuid-bia","sample-puuid-ana","sample-puuid-rnd-033","sample-puuid-rnd-034","sample-puuid-rnd-035","sample-puuid-rnd-036","sample-puuid-rnd-037","sample-puuid-rnd-038","sample-puuid-rnd-039"]},"info":{"gameCreation":1790813718242,"gameDuration":2100,"gameVersion":"26.19.1","queueId":400,"participants":[{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":100,"championName":"KSante","teamPosition":"TOP","kills":5,"deaths":3,"assists":9,"totalMinionsKilled":278,"goldEarned":15920,"totalDamageDealtToChampions":25717,"visionScore":25,"win":true,"item0":3047,"item1":6333,"item2":3071,"item3":6631,"item4":3065,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":100,"championName":"Viego","teamPosition":"JUNGLE","kills":5,"deaths":7,"assists":13,"totalMinionsKilled":157,"goldEarned":16970,"totalDamageDealtToChampions":35083,"visionScore":33,"win":true,"item0":3111,"item1":3156,"item2":6692,"item3":3071,"item4":6333,"item5":6694,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":100,"championName":"Ahri","teamPosition":"MIDDLE","kills":10,"deaths":6,"assists":6,"totalMinionsKilled":289,"goldEarned":18090,"totalDamageDealtToChampions":47120,"visionScore":20,"win":true,"item0":3158,"item1":4645,"item2":3157,"item3":3165,"item4":3135,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-033","riotIdGameName":"FarofaDeMana","riotIdTagline":"BR1","teamId":100,"championName":"Ashe","teamPosition":"BOTTOM","kills":4,"deaths":3,"assists":8,"totalMinionsKilled":321,"goldEarned":17725,"totalDamageDealtToChampions":52527,"visionScore":27,"win":true,"item0":3009,"item1":3031,"item2":3033,"item3":3094,"item4":3036,"item5":3085,"item6":3363},{"puuid":"sample-puuid-rnd-034","riotIdGameName":"VaiDarBom","riotIdTagline":"BR1","teamId":100,"championName":"Nami","teamPosition":"UTILITY","kills":3,"deaths":4,"assists":13,"totalMinionsKilled":34,"goldEarned":12745,"totalDamageDealtToChampions":16252,"visionScore":112,"win":true,"item0":3877,"item1":3158,"item2":3107,"item3":3190,"item4":3109,"item5":3504,"item6":3364},{"puuid":"sample-puuid-rnd-035","riotIdGameName":"Ignitado","riotIdTagline":"BR1","teamId":200,"championName":"Camille","teamPosition":"TOP","kills":3,"deaths":4,"assists":3,"totalMinionsKilled":198,"goldEarned":14395,"totalDamageDealtToChampions":32086,"visionScore":16,"win":false,"item0":3111,"item1":3742,"item2":6631,"item3":3071,"item4":6333,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-036","riotIdGameName":"ChoppGelado","riotIdTagline":"BR1","teamId":200,"championName":"Sejuani","teamPosition":"JUNGLE","kills":4,"deaths":5,"assists":10,"totalMinionsKilled":206,"goldEarned":14050,"totalDamageDealtToChampions":27189,"visionScore":45,"win":false,"item0":3047,"item1":6692,"item2":3142,"item3":3053,"item4":3814,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-037","riotIdGameName":"BlueBuffPls","riotIdTagline":"BR1","teamId":200,"championName":"Zed","teamPosition":"MIDDLE","kills":5,"deaths":6,"assists":6,"totalMinionsKilled":229,"goldEarned":14655,"totalDamageDealtToChampions":28649,"visionScore":20,"win":false,"item0":3020,"item1":3102,"item2":3165,"item3":3157,"item4":4645,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-038","riotIdGameName":"Rotacao Zero","riotIdTagline":"BR1","teamId":200,"championName":"Zeri","teamPosition":"BOTTOM","kills":10,"deaths":5,"assists":5,"totalMinionsKilled":325,"goldEarned":16170,"totalDamageDealtToChampions":32350,"visionScore":16,"win":false,"item0":3006,"item1":3072,"item2":3031,"item3":3085,"item4":3094,"item5":6672,"item6":3363},{"puuid":"sample-puuid-rnd-039","riotIdGameName":"PingoDeVisao","riotIdTagline":"BR1","teamId":200,"championName":"Blitzcrank","teamPosition":"UTILITY","kills":1,"deaths":7,"assists":16,"totalMinionsKilled":35,"goldEarned":10680,"totalDamageDealtToChampions":17128,"visionScore":66,"win":false,"item0":3876,"item1":3158,"item2":3504,"item3":3050,"item4":3190,"item5":6617,"item6":3364}]}},{"metadata":{"matchId":"BR1_3112515983","participants":["sample-puuid-rnd-043","sample-puuid-rnd-044","sample-puuid-rnd-045","sample-puuid-rnd-046","sample-puuid-rnd-047","sample-puuid-rnd-040","sample-puuid-rnd-041","sample-puuid-rnd-042","sample-puuid-duda","sample-puuid-leo"]},"info":{"gameCreation":1790898004422,"gameDuration":1580,"gameVersion":"26.19.1","queueId":420,"participants":[{"puuid":"sample-puuid-rnd-043","riotIdGameName":"CleanseLate","riotIdTagline":"BR1","teamId":100,"championName":"Camille","teamPosition":"TOP","kills":1,"deaths":9,"assists":3,"totalMinionsKilled":185,"goldEarned":10445,"totalDamageDealtToChampions":30218,"visionScore":13,"win":false,"item0":3047,"item1":3065,"item2":3053,"item3":3068,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-044","riotIdGameName":"LeitePoro","riotIdTagline":"BR1","teamId":100,"championName":"JarvanIV","teamPosition":"JUNGLE","kills":3,"deaths":8,"assists":4,"totalMinionsKilled":133,"goldEarned":10225,"totalDamageDealtToChampions":25688,"visionScore":31,"win":false,"item0":3111,"item1":3156,"item2":3814,"item3":3071,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-045","riotIdGameName":"BonkMeister","riotIdTagline":"BR1","teamId":100,"championName":"Yasuo","teamPosition":"MIDDLE","kills":7,"deaths":4,"assists":5,"totalMinionsKilled":229,"goldEarned":12520,"totalDamageDealtToChampions":31395,"visionScore":18,"win":false,"item0":3158,"item1":6655,"item2":4645,"item3":4646,"item4":3089,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-046","riotIdGameName":"MaeDoFeeder","riotIdTagline":"BR1","teamId":100,"championName":"Vayne","teamPosition":"BOTTOM","kills":8,"deaths":2,"assists":4,"totalMinionsKilled":218,"goldEarned":12845,"totalDamageDealtToChampions":29810,"visionScore":14,"win":false,"item0":3006,"item1":3031,"item2":3094,"item3":3033,"item4":0,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-047","riotIdGameName":"KalistaLover","riotIdTagline":"BR1","teamId":100,"championName":"Nami","teamPosition":"UTILITY","kills":1,"deaths":10,"assists":12,"totalMinionsKilled":36,"goldEarned":8630,"totalDamageDealtToChampions":14112,"visionScore":69,"win":false,"item0":3876,"item1":3111,"item2":2065,"item3":3190,"item4":3107,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-040","riotIdGameName":"Bot Gap","riotIdTagline":"BR1","teamId":200,"championName":"Mordekaiser","teamPosition":"TOP","kills":5,"deaths":4,"assists":4,"totalMinionsKilled":182,"goldEarned":13475,"totalDamageDealtToChampions":24002,"visionScore":14,"win":true,"item0":3047,"item1":3071,"item2":3053,"item3":3075,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-041","riotIdGameName":"Escudo Mole","riotIdTagline":"BR1","teamId":200,"championName":"Hecarim","teamPosition":"JUNGLE","kills":10,"deaths":5,"assists":11,"totalMinionsKilled":156,"goldEarned":15315,"totalDamageDealtToChampions":23555,"visionScore":34,"win":true,"item0":3111,"item1":6692,"item2":3053,"item3":3156,"item4":3071,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-042","riotIdGameName":"Ninja da Wave","riotIdTagline":"BR1","teamId":200,"championName":"Zed","teamPosition":"MIDDLE","kills":8,"deaths":3,"assists":6,"totalMinionsKilled":220,"goldEarned":13590,"totalDamageDealtToChampions":38165,"visionScore":24,"win":true,"item0":3020,"item1":3135,"item2":6655,"item3":3165,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":200,"championName":"Ezreal","teamPosition":"BOTTOM","kills":9,"deaths":3,"assists":6,"totalMinionsKilled":233,"goldEarned":14590,"totalDamageDealtToChampions":28430,"visionScore":19,"win":true,"item0":3009,"item1":3085,"item2":3031,"item3":3094,"item4":3033,"item5":0,"item6":3363},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":200,"championName":"Lulu","teamPosition":"UTILITY","kills":1,"deaths":5,"assists":9,"totalMinionsKilled":30,"goldEarned":8955,"totalDamageDealtToChampions":15320,"visionScore":51,"win":true,"item0":3869,"item1":3111,"item2":3050,"item3":3222,"item4":3190,"item5":0,"item6":3364}]}},{"metadata":{"matchId":"BR1_3113508642","participants":["sample-puuid-rnd-048","sample-puuid-rnd-049","sample-puuid-rnd-050","sample-puuid-rnd-051","sample-puuid-rnd-052","sample-puuid-caio","sample-puuid-bia","sample-puuid-ana","sample-puuid-duda","sample-puuid-leo"]},"info":{"gameCreation":1790991056330,"gameDuration":1063,"gameVersion":"26.19.1","queueId":450,"participants":[{"puuid":"sample-puuid-rnd-048","riotIdGameName":"ZedOuNada","riotIdTagline":"BR1","teamId":100,"championName":"Draven","teamPosition":"","kills":4,"deaths":2,"assists":11,"totalMinionsKilled":39,"goldEarned":9935,"totalDamageDealtToChampions":24347,"visionScore":3,"win":true,"item0":3009,"item1":3033,"item2":3031,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-049","riotIdGameName":"PudimDeBaron","riotIdTagline":"BR1","teamId":100,"championName":"Galio","teamPosition":"","kills":10,"deaths":4,"assists":10,"totalMinionsKilled":53,"goldEarned":11270,"totalDamageDealtToChampions":31978,"visionScore":3,"win":true,"item0":3158,"item1":3102,"item2":4646,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-050","riotIdGameName":"OTPdeYasuo","riotIdTagline":"BR2","teamId":100,"championName":"Smolder","teamPosition":"","kills":9,"deaths":3,"assists":18,"totalMinionsKilled":48,"goldEarned":11795,"totalDamageDealtToChampions":34881,"visionScore":3,"win":true,"item0":3006,"item1":3031,"item2":3033,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-051","riotIdGameName":"FlashNoMuro","riotIdTagline":"BR1","teamId":100,"championName":"Riven","teamPosition":"","kills":9,"deaths":3,"assists":17,"totalMinionsKilled":44,"goldEarned":11475,"totalDamageDealtToChampions":33792,"visionScore":2,"win":true,"item0":3047,"item1":3071,"item2":0,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-052","riotIdGameName":"CapivaraTank","riotIdTagline":"BR1","teamId":100,"championName":"Hwei","teamPosition":"","kills":2,"deaths":2,"assists":18,"totalMinionsKilled":44,"goldEarned":10245,"totalDamageDealtToChampions":29459,"visionScore":2,"win":true,"item0":3158,"item1":4645,"item2":0,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":200,"championName":"Soraka","teamPosition":"","kills":5,"deaths":6,"assists":9,"totalMinionsKilled":52,"goldEarned":8990,"totalDamageDealtToChampions":24438,"visionScore":2,"win":false,"item0":3111,"item1":3109,"item2":3050,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":200,"championName":"Zeri","teamPosition":"","kills":1,"deaths":6,"assists":10,"totalMinionsKilled":40,"goldEarned":7405,"totalDamageDealtToChampions":19274,"visionScore":3,"win":false,"item0":3009,"item1":6672,"item2":0,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":200,"championName":"Jhin","teamPosition":"","kills":2,"deaths":8,"assists":8,"totalMinionsKilled":40,"goldEarned":7690,"totalDamageDealtToChampions":26988,"visionScore":3,"win":false,"item0":3006,"item1":3094,"item2":3036,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":200,"championName":"Samira","teamPosition":"","kills":4,"deaths":8,"assists":8,"totalMinionsKilled":40,"goldEarned":8810,"totalDamageDealtToChampions":35385,"visionScore":3,"win":false,"item0":3009,"item1":3085,"item2":0,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":200,"championName":"Garen","teamPosition":"","kills":2,"deaths":6,"assists":9,"totalMinionsKilled":43,"goldEarned":7950,"totalDamageDealtToChampions":31178,"visionScore":3,"win":false,"item0":3047,"item1":6333,"item2":3053,"item3":0,"item4":0,"item5":0,"item6":0}]}},{"metadata":{"matchId":"BR1_3115080943","participants":["sample-puuid-rnd-054","sample-puuid-rnd-055","sample-puuid-rnd-056","sample-puuid-rnd-057","sample-puuid-rnd-058","sample-puuid-caio","sample-puuid-bia","sample-puuid-ana","sample-puuid-duda","sample-puuid-rnd-053"]},"info":{"gameCreation":1791068422274,"gameDuration":2021,"gameVersion":"26.19.1","queueId":440,"participants":[{"puuid":"sample-puuid-rnd-054","riotIdGameName":"MidOrFeed","riotIdTagline":"BR1","teamId":100,"championName":"Riven","teamPosition":"TOP","kills":4,"deaths":5,"assists":4,"totalMinionsKilled":255,"goldEarned":13435,"totalDamageDealtToChampions":37573,"visionScore":20,"win":false,"item0":3111,"item1":3068,"item2":6631,"item3":6333,"item4":3748,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-055","riotIdGameName":"PaoDeQueijoGG","riotIdTagline":"MG1","teamId":100,"championName":"Elise","teamPosition":"JUNGLE","kills":2,"deaths":4,"assists":10,"totalMinionsKilled":204,"goldEarned":14165,"totalDamageDealtToChampions":30927,"visionScore":30,"win":false,"item0":3047,"item1":3156,"item2":3053,"item3":6333,"item4":3814,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-056","riotIdGameName":"TeemoDoMal","riotIdTagline":"BR1","teamId":100,"championName":"Yasuo","teamPosition":"MIDDLE","kills":8,"deaths":11,"assists":4,"totalMinionsKilled":238,"goldEarned":15145,"totalDamageDealtToChampions":43665,"visionScore":29,"win":false,"item0":3020,"item1":3135,"item2":3089,"item3":3157,"item4":6655,"item5":4646,"item6":3340},{"puuid":"sample-puuid-rnd-057","riotIdGameName":"SoloQSofrida","riotIdTagline":"BR1","teamId":100,"championName":"Draven","teamPosition":"BOTTOM","kills":7,"deaths":9,"assists":6,"totalMinionsKilled":291,"goldEarned":14790,"totalDamageDealtToChampions":35688,"visionScore":23,"win":false,"item0":3006,"item1":3031,"item2":3094,"item3":3072,"item4":3036,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-058","riotIdGameName":"BaronDeTerno","riotIdTagline":"BR1","teamId":100,"championName":"Blitzcrank","teamPosition":"UTILITY","kills":1,"deaths":5,"assists":7,"totalMinionsKilled":36,"goldEarned":9305,"totalDamageDealtToChampions":18383,"visionScore":107,"win":false,"item0":3876,"item1":3158,"item2":3107,"item3":3190,"item4":3222,"item5":3050,"item6":3364},{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":200,"championName":"Darius","teamPosition":"TOP","kills":8,"deaths":5,"assists":7,"totalMinionsKilled":257,"goldEarned":17755,"totalDamageDealtToChampions":38615,"visionScore":23,"win":true,"item0":3111,"item1":6333,"item2":3053,"item3":3742,"item4":6631,"item5":3071,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":200,"championName":"LeeSin","teamPosition":"JUNGLE","kills":6,"deaths":2,"assists":9,"totalMinionsKilled":195,"goldEarned":15870,"totalDamageDealtToChampions":30207,"visionScore":39,"win":true,"item0":3047,"item1":3142,"item2":3071,"item3":3156,"item4":6694,"item5":0,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":200,"championName":"Syndra","teamPosition":"MIDDLE","kills":13,"deaths":6,"assists":11,"totalMinionsKilled":262,"goldEarned":19175,"totalDamageDealtToChampions":38569,"visionScore":30,"win":true,"item0":3158,"item1":3157,"item2":4645,"item3":3165,"item4":6655,"item5":3135,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":200,"championName":"Caitlyn","teamPosition":"BOTTOM","kills":6,"deaths":6,"assists":9,"totalMinionsKilled":292,"goldEarned":17215,"totalDamageDealtToChampions":50363,"visionScore":19,"win":true,"item0":3006,"item1":3085,"item2":6672,"item3":3036,"item4":3046,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-053","riotIdGameName":"Gankless","riotIdTagline":"BR1","teamId":200,"championName":"Rakan","teamPosition":"UTILITY","kills":1,"deaths":3,"assists":21,"totalMinionsKilled":37,"goldEarned":12090,"totalDamageDealtToChampions":11811,"visionScore":94,"win":true,"item0":3877,"item1":3111,"item2":3107,"item3":3050,"item4":3190,"item5":6617,"item6":3364}]}},{"metadata":{"matchId":"BR1_3118460438","participants":["sample-puuid-rnd-060","sample-puuid-rnd-061","sample-puuid-rnd-062","sample-puuid-rnd-063","sample-puuid-rnd-064","sample-puuid-caio","sample-puuid-bia","sample-puuid-ana","sample-puuid-duda","sample-puuid-rnd-059"]},"info":{"gameCreation":1791071100150,"gameDuration":2081,"gameVersion":"26.19.1","queueId":440,"participants":[{"puuid":"sample-puuid-rnd-060","riotIdGameName":"ReiDoSplit","riotIdTagline":"BR1","teamId":100,"championName":"Camille","teamPosition":"TOP","kills":6,"deaths":3,"assists":7,"totalMinionsKilled":216,"goldEarned":15945,"totalDamageDealtToChampions":35901,"visionScore":25,"win":true,"item0":3047,"item1":3742,"item2":3748,"item3":6631,"item4":3065,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-061","riotIdGameName":"NaoDaFF","riotIdTagline":"BR1","teamId":100,"championName":"Kayn","teamPosition":"JUNGLE","kills":11,"deaths":5,"assists":7,"totalMinionsKilled":215,"goldEarned":18515,"totalDamageDealtToChampions":35362,"visionScore":47,"win":true,"item0":3158,"item1":6692,"item2":6333,"item3":3071,"item4":3142,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-062","riotIdGameName":"Dragao Infernal","riotIdTagline":"BR1","teamId":100,"championName":"Yone","teamPosition":"MIDDLE","kills":6,"deaths":6,"assists":6,"totalMinionsKilled":263,"goldEarned":17050,"totalDamageDealtToChampions":36538,"visionScore":23,"win":true,"item0":3020,"item1":3157,"item2":4646,"item3":3135,"item4":3089,"item5":6655,"item6":3340},{"puuid":"sample-puuid-rnd-063","riotIdGameName":"EzrealDePijama","riotIdTagline":"BR1","teamId":100,"championName":"Samira","teamPosition":"BOTTOM","kills":13,"deaths":2,"assists":11,"totalMinionsKilled":271,"goldEarned":19690,"totalDamageDealtToChampions":38485,"visionScore":26,"win":true,"item0":3006,"item1":3033,"item2":3094,"item3":6672,"item4":3046,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-064","riotIdGameName":"TorreTeAma","riotIdTagline":"BR1","teamId":100,"championName":"Braum","teamPosition":"UTILITY","kills":2,"deaths":3,"assists":14,"totalMinionsKilled":33,"goldEarned":12225,"totalDamageDealtToChampions":11131,"visionScore":106,"win":true,"item0":3869,"item1":3117,"item2":3190,"item3":3107,"item4":6617,"item5":3222,"item6":3364},{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":200,"championName":"Aatrox","teamPosition":"TOP","kills":4,"deaths":8,"assists":4,"totalMinionsKilled":235,"goldEarned":14405,"totalDamageDealtToChampions":24302,"visionScore":19,"win":false,"item0":3111,"item1":3071,"item2":3068,"item3":3053,"item4":3075,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":200,"championName":"Viego","teamPosition":"JUNGLE","kills":4,"deaths":8,"assists":6,"totalMinionsKilled":190,"goldEarned":14780,"totalDamageDealtToChampions":23302,"visionScore":33,"win":false,"item0":3047,"item1":6694,"item2":3156,"item3":3053,"item4":6333,"item5":0,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":200,"championName":"Syndra","teamPosition":"MIDDLE","kills":5,"deaths":9,"assists":6,"totalMinionsKilled":241,"goldEarned":14580,"totalDamageDealtToChampions":33644,"visionScore":30,"win":false,"item0":3020,"item1":3102,"item2":6655,"item3":4646,"item4":3157,"item5":0,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":200,"championName":"Jinx","teamPosition":"BOTTOM","kills":4,"deaths":8,"assists":6,"totalMinionsKilled":236,"goldEarned":15295,"totalDamageDealtToChampions":52516,"visionScore":22,"win":false,"item0":3006,"item1":3031,"item2":3072,"item3":3033,"item4":3094,"item5":3046,"item6":3363},{"puuid":"sample-puuid-rnd-059","riotIdGameName":"LuluDaPraia","riotIdTagline":"BR1","teamId":200,"championName":"Nami","teamPosition":"UTILITY","kills":2,"deaths":5,"assists":11,"totalMinionsKilled":39,"goldEarned":10010,"totalDamageDealtToChampions":18716,"visionScore":94,"win":false,"item0":3869,"item1":3117,"item2":3107,"item3":6617,"item4":3109,"item5":3190,"item6":3364}]}},{"metadata":{"matchId":"BR1_3121300313","participants":["sample-puuid-caio","sample-puuid-rnd-065","sample-puuid-rnd-066","sample-puuid-rnd-067","sample-puuid-rnd-068","sample-puuid-rnd-069","sample-puuid-rnd-070","sample-puuid-rnd-071","sample-puuid-rnd-072","sample-puuid-rnd-073"]},"info":{"gameCreation":1791166208387,"gameDuration":2241,"gameVersion":"26.19.1","queueId":420,"participants":[{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":100,"championName":"Darius","teamPosition":"TOP","kills":6,"deaths":13,"assists":4,"totalMinionsKilled":293,"goldEarned":15960,"totalDamageDealtToChampions":42379,"visionScore":19,"win":false,"item0":3111,"item1":6631,"item2":3068,"item3":3053,"item4":3075,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-065","riotIdGameName":"ArrozComPing","riotIdTagline":"BR1","teamId":100,"championName":"Ekko","teamPosition":"JUNGLE","kills":6,"deaths":5,"assists":11,"totalMinionsKilled":234,"goldEarned":17020,"totalDamageDealtToChampions":23162,"visionScore":46,"win":false,"item0":3158,"item1":3071,"item2":3053,"item3":3814,"item4":6692,"item5":3156,"item6":3364},{"puuid":"sample-puuid-rnd-066","riotIdGameName":"Wardinho","riotIdTagline":"BR1","teamId":100,"championName":"Yasuo","teamPosition":"MIDDLE","kills":4,"deaths":8,"assists":8,"totalMinionsKilled":291,"goldEarned":15030,"totalDamageDealtToChampions":53999,"visionScore":33,"win":false,"item0":3020,"item1":4645,"item2":3157,"item3":6655,"item4":3102,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-067","riotIdGameName":"TiltProof","riotIdTagline":"BR1","teamId":100,"championName":"Xayah","teamPosition":"BOTTOM","kills":4,"deaths":11,"assists":8,"totalMinionsKilled":312,"goldEarned":17385,"totalDamageDealtToChampions":50637,"visionScore":22,"win":false,"item0":3009,"item1":3033,"item2":3085,"item3":3072,"item4":3046,"item5":6672,"item6":3363},{"puuid":"sample-puuid-rnd-068","riotIdGameName":"Pentakilla","riotIdTagline":"BR1","teamId":100,"championName":"Rakan","teamPosition":"UTILITY","kills":1,"deaths":6,"assists":13,"totalMinionsKilled":44,"goldEarned":10810,"totalDamageDealtToChampions":15979,"visionScore":85,"win":false,"item0":3876,"item1":3158,"item2":3109,"item3":6617,"item4":3190,"item5":3107,"item6":3364},{"puuid":"sample-puuid-rnd-069","riotIdGameName":"Mobilizado","riotIdTagline":"BR1","teamId":200,"championName":"Malphite","teamPosition":"TOP","kills":10,"deaths":3,"assists":9,"totalMinionsKilled":216,"goldEarned":18905,"totalDamageDealtToChampions":35448,"visionScore":23,"win":true,"item0":3111,"item1":3065,"item2":3742,"item3":3748,"item4":3075,"item5":6631,"item6":3340},{"puuid":"sample-puuid-rnd-070","riotIdGameName":"CafeComCombo","riotIdTagline":"BR1","teamId":200,"championName":"Graves","teamPosition":"JUNGLE","kills":9,"deaths":2,"assists":13,"totalMinionsKilled":203,"goldEarned":19885,"totalDamageDealtToChampions":31209,"visionScore":43,"win":true,"item0":3111,"item1":3814,"item2":6694,"item3":3142,"item4":6333,"item5":3156,"item6":3364},{"puuid":"sample-puuid-rnd-071","riotIdGameName":"MinionDeOuro","riotIdTagline":"BR1","teamId":200,"championName":"Veigar","teamPosition":"MIDDLE","kills":8,"deaths":4,"assists":6,"totalMinionsKilled":268,"goldEarned":18095,"totalDamageDealtToChampions":35983,"visionScore":20,"win":true,"item0":3020,"item1":3102,"item2":4646,"item3":4645,"item4":3157,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-072","riotIdGameName":"Sopa de Poro","riotIdTagline":"BR1","teamId":200,"championName":"Smolder","teamPosition":"BOTTOM","kills":13,"deaths":7,"assists":12,"totalMinionsKilled":250,"goldEarned":21915,"totalDamageDealtToChampions":50156,"visionScore":18,"win":true,"item0":3009,"item1":3031,"item2":3094,"item3":3036,"item4":6672,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-073","riotIdGameName":"XablauTop","riotIdTagline":"BR1","teamId":200,"championName":"Morgana","teamPosition":"UTILITY","kills":3,"deaths":5,"assists":14,"totalMinionsKilled":48,"goldEarned":13280,"totalDamageDealtToChampions":21943,"visionScore":99,"win":true,"item0":3869,"item1":3111,"item2":3107,"item3":2065,"item4":3190,"item5":3504,"item6":3364}]}},{"metadata":{"matchId":"BR1_3124668637","participants":["sample-puuid-rnd-076","sample-puuid-rnd-077","sample-puuid-rnd-078","sample-puuid-rnd-079","sample-puuid-rnd-080","sample-puuid-rnd-074","sample-puuid-bia","sample-puuid-rnd-075","sample-puuid-duda","sample-puuid-leo"]},"info":{"gameCreation":1791239409662,"gameDuration":1393,"gameVersion":"26.19.1","queueId":400,"participants":[{"puuid":"sample-puuid-rnd-076","riotIdGameName":"Kitesurf","riotIdTagline":"BR1","teamId":100,"championName":"Malphite","teamPosition":"TOP","kills":2,"deaths":4,"assists":3,"totalMinionsKilled":187,"goldEarned":10150,"totalDamageDealtToChampions":16506,"visionScore":13,"win":true,"item0":3047,"item1":3053,"item2":3071,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-077","riotIdGameName":"UltDoAlem","riotIdTagline":"BR1","teamId":100,"championName":"Hecarim","teamPosition":"JUNGLE","kills":8,"deaths":4,"assists":5,"totalMinionsKilled":117,"goldEarned":11455,"totalDamageDealtToChampions":25925,"visionScore":27,"win":true,"item0":3158,"item1":6692,"item2":3053,"item3":0,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-078","riotIdGameName":"FarofaDeMana","riotIdTagline":"BR1","teamId":100,"championName":"Zed","teamPosition":"MIDDLE","kills":10,"deaths":2,"assists":5,"totalMinionsKilled":193,"goldEarned":13260,"totalDamageDealtToChampions":35531,"visionScore":17,"win":true,"item0":3020,"item1":6655,"item2":4645,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-079","riotIdGameName":"VaiDarBom","riotIdTagline":"BR1","teamId":100,"championName":"Lucian","teamPosition":"BOTTOM","kills":5,"deaths":4,"assists":5,"totalMinionsKilled":204,"goldEarned":12310,"totalDamageDealtToChampions":33857,"visionScore":13,"win":true,"item0":3006,"item1":6672,"item2":3033,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-080","riotIdGameName":"Ignitado","riotIdTagline":"BR1","teamId":100,"championName":"Blitzcrank","teamPosition":"UTILITY","kills":1,"deaths":3,"assists":13,"totalMinionsKilled":26,"goldEarned":8550,"totalDamageDealtToChampions":8531,"visionScore":72,"win":true,"item0":3876,"item1":3111,"item2":3109,"item3":3107,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-074","riotIdGameName":"GankDoNada","riotIdTagline":"BR1","teamId":200,"championName":"Camille","teamPosition":"TOP","kills":4,"deaths":5,"assists":2,"totalMinionsKilled":175,"goldEarned":10050,"totalDamageDealtToChampions":24131,"visionScore":13,"win":false,"item0":3111,"item1":3053,"item2":3068,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":200,"championName":"Kindred","teamPosition":"JUNGLE","kills":5,"deaths":3,"assists":5,"totalMinionsKilled":119,"goldEarned":9820,"totalDamageDealtToChampions":25425,"visionScore":30,"win":false,"item0":3047,"item1":6333,"item2":3053,"item3":3814,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-075","riotIdGameName":"Jungle Diff","riotIdTagline":"BR1","teamId":200,"championName":"Yone","teamPosition":"MIDDLE","kills":3,"deaths":7,"assists":5,"totalMinionsKilled":148,"goldEarned":10120,"totalDamageDealtToChampions":27677,"visionScore":19,"win":false,"item0":3158,"item1":3135,"item2":3089,"item3":4645,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":200,"championName":"Ezreal","teamPosition":"BOTTOM","kills":4,"deaths":5,"assists":3,"totalMinionsKilled":192,"goldEarned":11060,"totalDamageDealtToChampions":26325,"visionScore":14,"win":false,"item0":3009,"item1":3036,"item2":3094,"item3":6672,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":200,"championName":"Thresh","teamPosition":"UTILITY","kills":1,"deaths":6,"assists":9,"totalMinionsKilled":31,"goldEarned":7430,"totalDamageDealtToChampions":11526,"visionScore":50,"win":false,"item0":3876,"item1":3117,"item2":3504,"item3":3109,"item4":0,"item5":0,"item6":3364}]}},{"metadata":{"matchId":"BR1_3127309313","participants":["sample-puuid-rnd-081","sample-puuid-bia","sample-puuid-ana","sample-puuid-rnd-082","sample-puuid-rnd-083","sample-puuid-rnd-084","sample-puuid-rnd-085","sample-puuid-rnd-086","sample-puuid-rnd-087","sample-puuid-rnd-088"]},"info":{"gameCreation":1791417656573,"gameDuration":1593,"gameVersion":"26.19.1","queueId":420,"participants":[{"puuid":"sample-puuid-rnd-081","riotIdGameName":"ChoppGelado","riotIdTagline":"BR1","teamId":100,"championName":"Camille","teamPosition":"TOP","kills":2,"deaths":5,"assists":2,"totalMinionsKilled":149,"goldEarned":9750,"totalDamageDealtToChampions":27579,"visionScore":17,"win":false,"item0":3111,"item1":3053,"item2":3068,"item3":3071,"item4":3065,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":100,"championName":"Viego","teamPosition":"JUNGLE","kills":4,"deaths":3,"assists":6,"totalMinionsKilled":152,"goldEarned":10935,"totalDamageDealtToChampions":22842,"visionScore":36,"win":false,"item0":3047,"item1":3156,"item2":6694,"item3":3142,"item4":3814,"item5":0,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":100,"championName":"Akali","teamPosition":"MIDDLE","kills":4,"deaths":6,"assists":3,"totalMinionsKilled":186,"goldEarned":10690,"totalDamageDealtToChampions":28124,"visionScore":17,"win":false,"item0":3020,"item1":6655,"item2":3089,"item3":3165,"item4":3135,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-082","riotIdGameName":"BlueBuffPls","riotIdTagline":"BR1","teamId":100,"championName":"Lucian","teamPosition":"BOTTOM","kills":6,"deaths":5,"assists":3,"totalMinionsKilled":207,"goldEarned":11785,"totalDamageDealtToChampions":23857,"visionScore":14,"win":false,"item0":3006,"item1":3046,"item2":3031,"item3":3085,"item4":0,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-083","riotIdGameName":"Rotacao Zero","riotIdTagline":"BR1","teamId":100,"championName":"Pyke","teamPosition":"UTILITY","kills":1,"deaths":9,"assists":7,"totalMinionsKilled":33,"goldEarned":7600,"totalDamageDealtToChampions":14320,"visionScore":81,"win":false,"item0":3869,"item1":3158,"item2":3107,"item3":2065,"item4":3050,"item5":3190,"item6":3364},{"puuid":"sample-puuid-rnd-084","riotIdGameName":"PingoDeVisao","riotIdTagline":"BR1","teamId":200,"championName":"Yorick","teamPosition":"TOP","kills":5,"deaths":1,"assists":6,"totalMinionsKilled":201,"goldEarned":12845,"totalDamageDealtToChampions":33334,"visionScore":20,"win":true,"item0":3047,"item1":6333,"item2":3053,"item3":6631,"item4":3748,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-085","riotIdGameName":"Bot Gap","riotIdTagline":"BR1","teamId":200,"championName":"Hecarim","teamPosition":"JUNGLE","kills":7,"deaths":5,"assists":8,"totalMinionsKilled":121,"goldEarned":14175,"totalDamageDealtToChampions":25893,"visionScore":36,"win":true,"item0":3047,"item1":3156,"item2":6694,"item3":6333,"item4":6692,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-086","riotIdGameName":"Escudo Mole","riotIdTagline":"BR1","teamId":200,"championName":"Leblanc","teamPosition":"MIDDLE","kills":9,"deaths":3,"assists":8,"totalMinionsKilled":213,"goldEarned":14510,"totalDamageDealtToChampions":33492,"visionScore":16,"win":true,"item0":3158,"item1":6655,"item2":3157,"item3":3089,"item4":4645,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-087","riotIdGameName":"Ninja da Wave","riotIdTagline":"BR1","teamId":200,"championName":"Ashe","teamPosition":"BOTTOM","kills":5,"deaths":4,"assists":5,"totalMinionsKilled":187,"goldEarned":13360,"totalDamageDealtToChampions":41542,"visionScore":20,"win":true,"item0":3006,"item1":6672,"item2":3072,"item3":3031,"item4":3094,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-088","riotIdGameName":"CleanseLate","riotIdTagline":"BR1","teamId":200,"championName":"Rakan","teamPosition":"UTILITY","kills":2,"deaths":4,"assists":12,"totalMinionsKilled":27,"goldEarned":8990,"totalDamageDealtToChampions":15182,"visionScore":86,"win":true,"item0":3869,"item1":3117,"item2":3190,"item3":6617,"item4":3504,"item5":3107,"item6":3364}]}},{"metadata":{"matchId":"BR1_3130423720","participants":["sample-puuid-caio","sample-puuid-bia","sample-puuid-ana","sample-puuid-duda","sample-puuid-leo","sample-puuid-rnd-089","sample-puuid-rnd-090","sample-puuid-rnd-091","sample-puuid-rnd-092","sample-puuid-rnd-093"]},"info":{"gameCreation":1791501617003,"gameDuration":1365,"gameVersion":"26.20.1","queueId":440,"participants":[{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":100,"championName":"KSante","teamPosition":"TOP","kills":5,"deaths":3,"assists":3,"totalMinionsKilled":134,"goldEarned":11280,"totalDamageDealtToChampions":26428,"visionScore":15,"win":true,"item0":3047,"item1":3065,"item2":3053,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":100,"championName":"LeeSin","teamPosition":"JUNGLE","kills":4,"deaths":3,"assists":7,"totalMinionsKilled":132,"goldEarned":11625,"totalDamageDealtToChampions":15458,"visionScore":29,"win":true,"item0":3111,"item1":6694,"item2":6692,"item3":0,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":100,"championName":"Viktor","teamPosition":"MIDDLE","kills":9,"deaths":2,"assists":7,"totalMinionsKilled":147,"goldEarned":13045,"totalDamageDealtToChampions":25386,"visionScore":20,"win":true,"item0":3158,"item1":3102,"item2":3135,"item3":3089,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":100,"championName":"Jinx","teamPosition":"BOTTOM","kills":8,"deaths":4,"assists":5,"totalMinionsKilled":189,"goldEarned":12610,"totalDamageDealtToChampions":30732,"visionScore":13,"win":true,"item0":3006,"item1":3036,"item2":3094,"item3":3046,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":100,"championName":"Lulu","teamPosition":"UTILITY","kills":2,"deaths":3,"assists":11,"totalMinionsKilled":26,"goldEarned":8250,"totalDamageDealtToChampions":8897,"visionScore":46,"win":true,"item0":3869,"item1":3111,"item2":3190,"item3":3107,"item4":3504,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-089","riotIdGameName":"LeitePoro","riotIdTagline":"BR1","teamId":200,"championName":"Malphite","teamPosition":"TOP","kills":3,"deaths":4,"assists":4,"totalMinionsKilled":174,"goldEarned":9450,"totalDamageDealtToChampions":21279,"visionScore":11,"win":false,"item0":3111,"item1":3068,"item2":6631,"item3":3053,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-090","riotIdGameName":"BonkMeister","riotIdTagline":"BR1","teamId":200,"championName":"XinZhao","teamPosition":"JUNGLE","kills":4,"deaths":5,"assists":3,"totalMinionsKilled":142,"goldEarned":8855,"totalDamageDealtToChampions":15600,"visionScore":26,"win":false,"item0":3111,"item1":6692,"item2":6333,"item3":0,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-091","riotIdGameName":"MaeDoFeeder","riotIdTagline":"BR1","teamId":200,"championName":"Yasuo","teamPosition":"MIDDLE","kills":4,"deaths":4,"assists":5,"totalMinionsKilled":170,"goldEarned":10705,"totalDamageDealtToChampions":33346,"visionScore":19,"win":false,"item0":3158,"item1":3102,"item2":3157,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-092","riotIdGameName":"KalistaLover","riotIdTagline":"BR1","teamId":200,"championName":"Ashe","teamPosition":"BOTTOM","kills":4,"deaths":7,"assists":3,"totalMinionsKilled":200,"goldEarned":10330,"totalDamageDealtToChampions":32130,"visionScore":14,"win":false,"item0":3009,"item1":3036,"item2":6672,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-093","riotIdGameName":"ZedOuNada","riotIdTagline":"BR1","teamId":200,"championName":"Soraka","teamPosition":"UTILITY","kills":0,"deaths":8,"assists":10,"totalMinionsKilled":23,"goldEarned":6670,"totalDamageDealtToChampions":10534,"visionScore":56,"win":false,"item0":3869,"item1":3117,"item2":6617,"item3":3504,"item4":0,"item5":0,"item6":3364}]}},{"metadata":{"matchId":"BR1_3132116150","participants":["sample-puuid-rnd-094","sample-puuid-rnd-095","sample-puuid-rnd-096","sample-puuid-duda","sample-puuid-leo","sample-puuid-rnd-097","sample-puuid-rnd-098","sample-puuid-rnd-099","sample-puuid-rnd-100","sample-puuid-rnd-101"]},"info":{"gameCreation":1791594924199,"gameDuration":1405,"gameVersion":"26.20.1","queueId":420,"participants":[{"puuid":"sample-puuid-rnd-094","riotIdGameName":"PudimDeBaron","riotIdTagline":"BR1","teamId":100,"championName":"Fiora","teamPosition":"TOP","kills":6,"deaths":5,"assists":6,"totalMinionsKilled":156,"goldEarned":12250,"totalDamageDealtToChampions":20156,"visionScore":17,"win":true,"item0":3047,"item1":3742,"item2":3065,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-095","riotIdGameName":"OTPdeYasuo","riotIdTagline":"BR2","teamId":100,"championName":"Khazix","teamPosition":"JUNGLE","kills":8,"deaths":2,"assists":7,"totalMinionsKilled":109,"goldEarned":12610,"totalDamageDealtToChampions":21870,"visionScore":31,"win":true,"item0":3158,"item1":3142,"item2":3053,"item3":0,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-096","riotIdGameName":"FlashNoMuro","riotIdTagline":"BR1","teamId":100,"championName":"Leblanc","teamPosition":"MIDDLE","kills":8,"deaths":1,"assists":8,"totalMinionsKilled":181,"goldEarned":12870,"totalDamageDealtToChampions":36280,"visionScore":18,"win":true,"item0":3020,"item1":6655,"item2":4646,"item3":3157,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":100,"championName":"Jinx","teamPosition":"BOTTOM","kills":7,"deaths":5,"assists":6,"totalMinionsKilled":189,"goldEarned":13310,"totalDamageDealtToChampions":30550,"visionScore":14,"win":true,"item0":3006,"item1":3031,"item2":3094,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":100,"championName":"Milio","teamPosition":"UTILITY","kills":2,"deaths":5,"assists":16,"totalMinionsKilled":25,"goldEarned":8815,"totalDamageDealtToChampions":14021,"visionScore":75,"win":true,"item0":3869,"item1":3117,"item2":2065,"item3":3107,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-097","riotIdGameName":"CapivaraTank","riotIdTagline":"BR1","teamId":200,"championName":"Gragas","teamPosition":"TOP","kills":4,"deaths":4,"assists":2,"totalMinionsKilled":160,"goldEarned":9965,"totalDamageDealtToChampions":18579,"visionScore":18,"win":false,"item0":3111,"item1":6333,"item2":3065,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-098","riotIdGameName":"Gankless","riotIdTagline":"BR1","teamId":200,"championName":"Kayn","teamPosition":"JUNGLE","kills":4,"deaths":5,"assists":7,"totalMinionsKilled":142,"goldEarned":10175,"totalDamageDealtToChampions":14713,"visionScore":27,"win":false,"item0":3047,"item1":6692,"item2":3156,"item3":0,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-099","riotIdGameName":"MidOrFeed","riotIdTagline":"BR1","teamId":200,"championName":"Veigar","teamPosition":"MIDDLE","kills":4,"deaths":9,"assists":3,"totalMinionsKilled":160,"goldEarned":10360,"totalDamageDealtToChampions":26231,"visionScore":16,"win":false,"item0":3158,"item1":6655,"item2":3089,"item3":4646,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-100","riotIdGameName":"PaoDeQueijoGG","riotIdTagline":"MG1","teamId":200,"championName":"Ashe","teamPosition":"BOTTOM","kills":5,"deaths":6,"assists":4,"totalMinionsKilled":206,"goldEarned":10455,"totalDamageDealtToChampions":24224,"visionScore":14,"win":false,"item0":3009,"item1":3094,"item2":3072,"item3":3031,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-101","riotIdGameName":"TeemoDoMal","riotIdTagline":"BR1","teamId":200,"championName":"Nami","teamPosition":"UTILITY","kills":1,"deaths":7,"assists":10,"totalMinionsKilled":25,"goldEarned":7730,"totalDamageDealtToChampions":10934,"visionScore":71,"win":false,"item0":3876,"item1":3111,"item2":3222,"item3":3050,"item4":3190,"item5":0,"item6":3364}]}},{"metadata":{"matchId":"BR1_3136584923","participants":["sample-puuid-rnd-104","sample-puuid-rnd-105","sample-puuid-rnd-106","sample-puuid-rnd-107","sample-puuid-rnd-108","sample-puuid-caio","sample-puuid-rnd-102","sample-puuid-ana","sample-puuid-rnd-103","sample-puuid-leo"]},"info":{"gameCreation":1791679217129,"gameDuration":1147,"gameVersion":"26.20.1","queueId":450,"participants":[{"puuid":"sample-puuid-rnd-104","riotIdGameName":"LuluDaPraia","riotIdTagline":"BR1","teamId":100,"championName":"XinZhao","teamPosition":"","kills":6,"deaths":2,"assists":17,"totalMinionsKilled":52,"goldEarned":10930,"totalDamageDealtToChampions":39228,"visionScore":2,"win":true,"item0":3158,"item1":6692,"item2":6333,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-105","riotIdGameName":"ReiDoSplit","riotIdTagline":"BR1","teamId":100,"championName":"Viego","teamPosition":"","kills":4,"deaths":4,"assists":10,"totalMinionsKilled":56,"goldEarned":9510,"totalDamageDealtToChampions":34587,"visionScore":4,"win":true,"item0":3158,"item1":6694,"item2":0,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-106","riotIdGameName":"NaoDaFF","riotIdTagline":"BR1","teamId":100,"championName":"Graves","teamPosition":"","kills":12,"deaths":5,"assists":12,"totalMinionsKilled":49,"goldEarned":12605,"totalDamageDealtToChampions":26121,"visionScore":2,"win":true,"item0":3111,"item1":3156,"item2":6333,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-107","riotIdGameName":"Dragao Infernal","riotIdTagline":"BR1","teamId":100,"championName":"Shen","teamPosition":"","kills":9,"deaths":3,"assists":19,"totalMinionsKilled":51,"goldEarned":12485,"totalDamageDealtToChampions":42691,"visionScore":3,"win":true,"item0":3111,"item1":6631,"item2":0,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-108","riotIdGameName":"EzrealDePijama","riotIdTagline":"BR1","teamId":100,"championName":"Smolder","teamPosition":"","kills":10,"deaths":4,"assists":19,"totalMinionsKilled":54,"goldEarned":12915,"totalDamageDealtToChampions":28363,"visionScore":3,"win":true,"item0":3006,"item1":3033,"item2":0,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":200,"championName":"JarvanIV","teamPosition":"","kills":2,"deaths":9,"assists":11,"totalMinionsKilled":48,"goldEarned":8585,"totalDamageDealtToChampions":29355,"visionScore":3,"win":false,"item0":3158,"item1":3156,"item2":0,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-102","riotIdGameName":"SoloQSofrida","riotIdTagline":"BR1","teamId":200,"championName":"Varus","teamPosition":"","kills":3,"deaths":6,"assists":12,"totalMinionsKilled":41,"goldEarned":9610,"totalDamageDealtToChampions":36667,"visionScore":3,"win":false,"item0":3006,"item1":3031,"item2":3094,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":200,"championName":"Morgana","teamPosition":"","kills":6,"deaths":9,"assists":12,"totalMinionsKilled":49,"goldEarned":10380,"totalDamageDealtToChampions":23339,"visionScore":4,"win":false,"item0":3158,"item1":3504,"item2":0,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-rnd-103","riotIdGameName":"BaronDeTerno","riotIdTagline":"BR1","teamId":200,"championName":"Vi","teamPosition":"","kills":3,"deaths":8,"assists":12,"totalMinionsKilled":44,"goldEarned":9485,"totalDamageDealtToChampions":39418,"visionScore":3,"win":false,"item0":3047,"item1":3814,"item2":6333,"item3":0,"item4":0,"item5":0,"item6":0},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":200,"championName":"Sejuani","teamPosition":"","kills":4,"deaths":9,"assists":10,"totalMinionsKilled":53,"goldEarned":9130,"totalDamageDealtToChampions":30525,"visionScore":3,"win":false,"item0":3111,"item1":3156,"item2":0,"item3":0,"item4":0,"item5":0,"item6":0}]}},{"metadata":{"matchId":"BR1_3141293446","participants":["sample-puuid-caio","sample-puuid-bia","sample-puuid-ana","sample-puuid-duda","sample-puuid-leo","sample-puuid-rnd-109","sample-puuid-rnd-110","sample-puuid-rnd-111","sample-puuid-rnd-112","sample-puuid-rnd-113"]},"info":{"gameCreation":1791759909811,"gameDuration":1477,"gameVersion":"26.20.1","queueId":440,"participants":[{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":100,"championName":"Garen","teamPosition":"TOP","kills":5,"deaths":3,"assists":5,"totalMinionsKilled":151,"goldEarned":12315,"totalDamageDealtToChampions":32093,"visionScore":12,"win":true,"item0":3047,"item1":3053,"item2":3075,"item3":3065,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":100,"championName":"Viego","teamPosition":"JUNGLE","kills":2,"deaths":3,"assists":10,"totalMinionsKilled":117,"goldEarned":11320,"totalDamageDealtToChampions":22584,"visionScore":22,"win":true,"item0":3158,"item1":6692,"item2":6694,"item3":3156,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":100,"championName":"Syndra","teamPosition":"MIDDLE","kills":8,"deaths":1,"assists":9,"totalMinionsKilled":202,"goldEarned":13215,"totalDamageDealtToChampions":22479,"visionScore":20,"win":true,"item0":3158,"item1":6655,"item2":4646,"item3":3157,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":100,"championName":"Caitlyn","teamPosition":"BOTTOM","kills":11,"deaths":3,"assists":5,"totalMinionsKilled":191,"goldEarned":15115,"totalDamageDealtToChampions":30920,"visionScore":13,"win":true,"item0":3006,"item1":6672,"item2":3046,"item3":3031,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":100,"championName":"Thresh","teamPosition":"UTILITY","kills":1,"deaths":3,"assists":11,"totalMinionsKilled":31,"goldEarned":8160,"totalDamageDealtToChampions":11992,"visionScore":48,"win":true,"item0":3869,"item1":3158,"item2":3107,"item3":3190,"item4":3504,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-109","riotIdGameName":"TorreTeAma","riotIdTagline":"BR1","teamId":200,"championName":"Riven","teamPosition":"TOP","kills":4,"deaths":6,"assists":3,"totalMinionsKilled":141,"goldEarned":10265,"totalDamageDealtToChampions":19266,"visionScore":15,"win":false,"item0":3047,"item1":3065,"item2":6333,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-110","riotIdGameName":"ArrozComPing","riotIdTagline":"BR1","teamId":200,"championName":"MonkeyKing","teamPosition":"JUNGLE","kills":1,"deaths":3,"assists":5,"totalMinionsKilled":156,"goldEarned":9405,"totalDamageDealtToChampions":15695,"visionScore":29,"win":false,"item0":3158,"item1":6333,"item2":6692,"item3":0,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-111","riotIdGameName":"Wardinho","riotIdTagline":"BR1","teamId":200,"championName":"Leblanc","teamPosition":"MIDDLE","kills":4,"deaths":3,"assists":4,"totalMinionsKilled":151,"goldEarned":10035,"totalDamageDealtToChampions":34961,"visionScore":18,"win":false,"item0":3158,"item1":4645,"item2":6655,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-112","riotIdGameName":"TiltProof","riotIdTagline":"BR1","teamId":200,"championName":"Xayah","teamPosition":"BOTTOM","kills":4,"deaths":5,"assists":3,"totalMinionsKilled":191,"goldEarned":10225,"totalDamageDealtToChampions":25890,"visionScore":14,"win":false,"item0":3006,"item1":3031,"item2":3072,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-113","riotIdGameName":"Pentakilla","riotIdTagline":"BR1","teamId":200,"championName":"Rakan","teamPosition":"UTILITY","kills":0,"deaths":10,"assists":11,"totalMinionsKilled":30,"goldEarned":7065,"totalDamageDealtToChampions":13265,"visionScore":72,"win":false,"item0":3877,"item1":3111,"item2":3050,"item3":3107,"item4":2065,"item5":0,"item6":3364}]}},{"metadata":{"matchId":"BR1_3142481691","participants":["sample-puuid-rnd-114","sample-puuid-bia","sample-puuid-ana","sample-puuid-rnd-115","sample-puuid-rnd-116","sample-puuid-rnd-117","sample-puuid-rnd-118","sample-puuid-rnd-119","sample-puuid-rnd-120","sample-puuid-rnd-121"]},"info":{"gameCreation":1791852626633,"gameDuration":1387,"gameVersion":"26.20.1","queueId":420,"participants":[{"puuid":"sample-puuid-rnd-114","riotIdGameName":"Mobilizado","riotIdTagline":"BR1","teamId":100,"championName":"Camille","teamPosition":"TOP","kills":3,"deaths":3,"assists":5,"totalMinionsKilled":164,"goldEarned":11240,"totalDamageDealtToChampions":24090,"visionScore":14,"win":true,"item0":3047,"item1":3071,"item2":3053,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":100,"championName":"LeeSin","teamPosition":"JUNGLE","kills":6,"deaths":1,"assists":10,"totalMinionsKilled":108,"goldEarned":12200,"totalDamageDealtToChampions":20223,"visionScore":20,"win":true,"item0":3111,"item1":3142,"item2":6694,"item3":0,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":100,"championName":"Orianna","teamPosition":"MIDDLE","kills":3,"deaths":3,"assists":5,"totalMinionsKilled":163,"goldEarned":10350,"totalDamageDealtToChampions":24181,"visionScore":15,"win":true,"item0":3020,"item1":3157,"item2":3135,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-115","riotIdGameName":"CafeComCombo","riotIdTagline":"BR1","teamId":100,"championName":"Ashe","teamPosition":"BOTTOM","kills":8,"deaths":2,"assists":3,"totalMinionsKilled":168,"goldEarned":12995,"totalDamageDealtToChampions":36212,"visionScore":17,"win":true,"item0":3006,"item1":3072,"item2":3046,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-116","riotIdGameName":"MinionDeOuro","riotIdTagline":"BR1","teamId":100,"championName":"Nami","teamPosition":"UTILITY","kills":2,"deaths":3,"assists":16,"totalMinionsKilled":29,"goldEarned":8495,"totalDamageDealtToChampions":12601,"visionScore":53,"win":true,"item0":3876,"item1":3111,"item2":3504,"item3":3190,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-117","riotIdGameName":"Sopa de Poro","riotIdTagline":"BR1","teamId":200,"championName":"Malphite","teamPosition":"TOP","kills":1,"deaths":4,"assists":3,"totalMinionsKilled":161,"goldEarned":9055,"totalDamageDealtToChampions":25750,"visionScore":13,"win":false,"item0":3047,"item1":3065,"item2":6631,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-118","riotIdGameName":"XablauTop","riotIdTagline":"BR1","teamId":200,"championName":"Amumu","teamPosition":"JUNGLE","kills":4,"deaths":5,"assists":4,"totalMinionsKilled":128,"goldEarned":9615,"totalDamageDealtToChampions":19280,"visionScore":23,"win":false,"item0":3047,"item1":6692,"item2":3142,"item3":0,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-119","riotIdGameName":"GankDoNada","riotIdTagline":"BR1","teamId":200,"championName":"Yone","teamPosition":"MIDDLE","kills":1,"deaths":4,"assists":3,"totalMinionsKilled":199,"goldEarned":9645,"totalDamageDealtToChampions":22066,"visionScore":18,"win":false,"item0":3158,"item1":3135,"item2":3089,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-120","riotIdGameName":"Jungle Diff","riotIdTagline":"BR1","teamId":200,"championName":"MissFortune","teamPosition":"BOTTOM","kills":5,"deaths":4,"assists":5,"totalMinionsKilled":204,"goldEarned":10425,"totalDamageDealtToChampions":31508,"visionScore":10,"win":false,"item0":3006,"item1":3031,"item2":6672,"item3":3036,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-121","riotIdGameName":"Kitesurf","riotIdTagline":"BR1","teamId":200,"championName":"Blitzcrank","teamPosition":"UTILITY","kills":1,"deaths":5,"assists":8,"totalMinionsKilled":28,"goldEarned":7040,"totalDamageDealtToChampions":7909,"visionScore":61,"win":false,"item0":3877,"item1":3158,"item2":3107,"item3":3190,"item4":3222,"item5":0,"item6":3364}]}},{"metadata":{"matchId":"BR1_3145409653","participants":["sample-puuid-caio","sample-puuid-rnd-122","sample-puuid-rnd-123","sample-puuid-duda","sample-puuid-leo","sample-puuid-rnd-124","sample-puuid-rnd-125","sample-puuid-rnd-126","sample-puuid-rnd-127","sample-puuid-rnd-128"]},"info":{"gameCreation":1792027827715,"gameDuration":1753,"gameVersion":"26.20.1","queueId":400,"participants":[{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":100,"championName":"Darius","teamPosition":"TOP","kills":2,"deaths":5,"assists":4,"totalMinionsKilled":171,"goldEarned":11775,"totalDamageDealtToChampions":25376,"visionScore":19,"win":false,"item0":3111,"item1":3075,"item2":6631,"item3":3071,"item4":3065,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-122","riotIdGameName":"UltDoAlem","riotIdTagline":"BR1","teamId":100,"championName":"Amumu","teamPosition":"JUNGLE","kills":5,"deaths":4,"assists":6,"totalMinionsKilled":172,"goldEarned":13070,"totalDamageDealtToChampions":25546,"visionScore":40,"win":false,"item0":3047,"item1":6692,"item2":3156,"item3":3071,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-123","riotIdGameName":"FarofaDeMana","riotIdTagline":"BR1","teamId":100,"championName":"Yasuo","teamPosition":"MIDDLE","kills":6,"deaths":2,"assists":5,"totalMinionsKilled":185,"goldEarned":12370,"totalDamageDealtToChampions":32568,"visionScore":24,"win":false,"item0":3158,"item1":6655,"item2":3135,"item3":4645,"item4":4646,"item5":0,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":100,"championName":"Jinx","teamPosition":"BOTTOM","kills":8,"deaths":8,"assists":5,"totalMinionsKilled":258,"goldEarned":13215,"totalDamageDealtToChampions":40554,"visionScore":14,"win":false,"item0":3006,"item1":3046,"item2":3036,"item3":3033,"item4":0,"item5":0,"item6":3363},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":100,"championName":"Thresh","teamPosition":"UTILITY","kills":1,"deaths":3,"assists":7,"totalMinionsKilled":28,"goldEarned":8830,"totalDamageDealtToChampions":15983,"visionScore":83,"win":false,"item0":3876,"item1":3111,"item2":3107,"item3":3190,"item4":3109,"item5":2065,"item6":3364},{"puuid":"sample-puuid-rnd-124","riotIdGameName":"VaiDarBom","riotIdTagline":"BR1","teamId":200,"championName":"Riven","teamPosition":"TOP","kills":3,"deaths":3,"assists":4,"totalMinionsKilled":217,"goldEarned":13385,"totalDamageDealtToChampions":30910,"visionScore":21,"win":true,"item0":3111,"item1":3068,"item2":3053,"item3":3065,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-125","riotIdGameName":"Ignitado","riotIdTagline":"BR1","teamId":200,"championName":"Graves","teamPosition":"JUNGLE","kills":6,"deaths":6,"assists":11,"totalMinionsKilled":164,"goldEarned":13845,"totalDamageDealtToChampions":19229,"visionScore":25,"win":true,"item0":3111,"item1":3053,"item2":3142,"item3":3071,"item4":3156,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-126","riotIdGameName":"ChoppGelado","riotIdTagline":"BR1","teamId":200,"championName":"Yone","teamPosition":"MIDDLE","kills":7,"deaths":3,"assists":6,"totalMinionsKilled":185,"goldEarned":15105,"totalDamageDealtToChampions":34603,"visionScore":24,"win":true,"item0":3158,"item1":3102,"item2":6655,"item3":3089,"item4":4646,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-127","riotIdGameName":"BlueBuffPls","riotIdTagline":"BR1","teamId":200,"championName":"Vayne","teamPosition":"BOTTOM","kills":4,"deaths":4,"assists":8,"totalMinionsKilled":253,"goldEarned":14325,"totalDamageDealtToChampions":43188,"visionScore":20,"win":true,"item0":3006,"item1":3036,"item2":6672,"item3":3033,"item4":0,"item5":0,"item6":3363},{"puuid":"sample-puuid-rnd-128","riotIdGameName":"Rotacao Zero","riotIdTagline":"BR1","teamId":200,"championName":"Soraka","teamPosition":"UTILITY","kills":2,"deaths":6,"assists":16,"totalMinionsKilled":35,"goldEarned":10340,"totalDamageDealtToChampions":14406,"visionScore":93,"win":true,"item0":3876,"item1":3158,"item2":3107,"item3":3109,"item4":6617,"item5":3190,"item6":3364}]}},{"metadata":{"matchId":"BR1_3148169659","participants":["sample-puuid-caio","sample-puuid-bia","sample-puuid-ana","sample-puuid-duda","sample-puuid-leo","sample-puuid-rnd-129","sample-puuid-rnd-130","sample-puuid-rnd-131","sample-puuid-rnd-132","sample-puuid-rnd-133"]},"info":{"gameCreation":1792111252899,"gameDuration":1449,"gameVersion":"26.20.1","queueId":440,"participants":[{"puuid":"sample-puuid-caio","riotIdGameName":"TiltadoDoTop","riotIdTagline":"SPK","teamId":100,"championName":"Garen","teamPosition":"TOP","kills":4,"deaths":2,"assists":5,"totalMinionsKilled":142,"goldEarned":11620,"totalDamageDealtToChampions":20508,"visionScore":11,"win":true,"item0":3111,"item1":3068,"item2":3742,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-bia","riotIdGameName":"SmiteNoDragao","riotIdTagline":"BR1","teamId":100,"championName":"Vi","teamPosition":"JUNGLE","kills":8,"deaths":3,"assists":5,"totalMinionsKilled":152,"goldEarned":12550,"totalDamageDealtToChampions":22144,"visionScore":25,"win":true,"item0":3111,"item1":3142,"item2":3156,"item3":0,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-ana","riotIdGameName":"AhriDeLuxo","riotIdTagline":"SPK","teamId":100,"championName":"Ahri","teamPosition":"MIDDLE","kills":10,"deaths":2,"assists":7,"totalMinionsKilled":183,"goldEarned":13415,"totalDamageDealtToChampions":33773,"visionScore":20,"win":true,"item0":3158,"item1":4645,"item2":3157,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-duda","riotIdGameName":"SoFarmoMesmo","riotIdTagline":"BR1","teamId":100,"championName":"Caitlyn","teamPosition":"BOTTOM","kills":12,"deaths":4,"assists":6,"totalMinionsKilled":178,"goldEarned":14125,"totalDamageDealtToChampions":35620,"visionScore":15,"win":true,"item0":3009,"item1":3031,"item2":6672,"item3":3094,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-leo","riotIdGameName":"WardNaoEhCrime","riotIdTagline":"SPK","teamId":100,"championName":"Thresh","teamPosition":"UTILITY","kills":1,"deaths":3,"assists":16,"totalMinionsKilled":32,"goldEarned":8950,"totalDamageDealtToChampions":9711,"visionScore":71,"win":true,"item0":3869,"item1":3158,"item2":3050,"item3":3222,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-129","riotIdGameName":"PingoDeVisao","riotIdTagline":"BR1","teamId":200,"championName":"Camille","teamPosition":"TOP","kills":2,"deaths":9,"assists":4,"totalMinionsKilled":137,"goldEarned":9295,"totalDamageDealtToChampions":27591,"visionScore":19,"win":false,"item0":3047,"item1":3071,"item2":3053,"item3":3068,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-130","riotIdGameName":"Bot Gap","riotIdTagline":"BR1","teamId":200,"championName":"Graves","teamPosition":"JUNGLE","kills":3,"deaths":5,"assists":6,"totalMinionsKilled":145,"goldEarned":9630,"totalDamageDealtToChampions":24515,"visionScore":34,"win":false,"item0":3158,"item1":3053,"item2":3156,"item3":0,"item4":0,"item5":0,"item6":3364},{"puuid":"sample-puuid-rnd-131","riotIdGameName":"Escudo Mole","riotIdTagline":"BR1","teamId":200,"championName":"Yasuo","teamPosition":"MIDDLE","kills":5,"deaths":5,"assists":4,"totalMinionsKilled":162,"goldEarned":10575,"totalDamageDealtToChampions":30335,"visionScore":20,"win":false,"item0":3020,"item1":6655,"item2":3089,"item3":3157,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-132","riotIdGameName":"Ninja da Wave","riotIdTagline":"BR1","teamId":200,"championName":"Ashe","teamPosition":"BOTTOM","kills":4,"deaths":6,"assists":4,"totalMinionsKilled":215,"goldEarned":10255,"totalDamageDealtToChampions":21718,"visionScore":19,"win":false,"item0":3009,"item1":6672,"item2":3031,"item3":0,"item4":0,"item5":0,"item6":3340},{"puuid":"sample-puuid-rnd-133","riotIdGameName":"CleanseLate","riotIdTagline":"BR1","teamId":200,"championName":"Soraka","teamPosition":"UTILITY","kills":0,"deaths":10,"assists":6,"totalMinionsKilled":27,"goldEarned":7170,"totalDamageDealtToChampions":13636,"visionScore":55,"win":false,"item0":3877,"item1":3158,"item2":3109,"item3":3107,"item4":0,"item5":0,"item6":3364}]}}]}</script>
+
+<script>
+'use strict';
+(() => {
+/* =====================================================================
+ * CONFIG / constantes
+ * ===================================================================== */
+const CONFIG = {
+  // 'inline' (padrão, dados de exemplo) ou 'riot-proxy' (futuro; requer backend).
+  dataSource: 'inline',
+  // URL do backend próprio que guarda a chave da Riot (ver README). Nunca coloque a chave aqui.
+  proxyBaseUrl: '/api',
+  // Versão do Data Dragon usada só para as imagens (opcional; se falhar, aparecem as iniciais).
+  ddragonVersion: '15.20.1',
+  useImages: true,
+};
+const QUEUES = { 420: 'Solo/Duo', 440: 'Flex', 400: 'Normal Alternada', 450: 'ARAM' };
+const QUEUES_LONG = { 420: 'Ranqueada Solo/Duo', 440: 'Ranqueada Flex', 400: 'Normal Alternada', 450: 'ARAM' };
+const QUEUE_ORDER = [420, 440, 400, 450];
+const POSITIONS = { TOP: 'Topo', JUNGLE: 'Selva', MIDDLE: 'Meio', BOTTOM: 'Atirador', UTILITY: 'Suporte', '': 'ARAM' };
+const POS_SHORT = { TOP: 'TOP', JUNGLE: 'JG', MIDDLE: 'MID', BOTTOM: 'ADC', UTILITY: 'SUP', '': '—' };
+// Identificador do Data Dragon -> nome de exibição (só quando diferem).
+const CHAMP_NAMES = { MonkeyKing: 'Wukong', KSante: "K'Sante", LeeSin: 'Lee Sin', JarvanIV: 'Jarvan IV', Khazix: "Kha'Zix",
+  Kaisa: "Kai'Sa", MissFortune: 'Miss Fortune', TwistedFate: 'Twisted Fate', XinZhao: 'Xin Zhao', Leblanc: 'LeBlanc',
+  Velkoz: "Vel'Koz", Chogath: "Cho'Gath", KogMaw: "Kog'Maw", RekSai: "Rek'Sai", DrMundo: 'Dr. Mundo', TahmKench: 'Tahm Kench',
+  AurelionSol: 'Aurelion Sol', MasterYi: 'Master Yi', Nunu: 'Nunu e Willump', Belveth: "Bel'Veth", Renata: 'Renata Glasc' };
+const ITEM_NAMES = { 1001:'Botas', 2065:'Canção de Batalha de Shurelya', 3006:'Grevas do Berserker', 3009:'Botas da Rapidez',
+  3020:'Sapatos do Feiticeiro', 3031:'Gume do Infinito', 3033:'Lembrete Mortal', 3036:'Lembranças do Lorde Dominik',
+  3046:'Dançarina Fantasma', 3047:'Botas Galvanizadas de Aço', 3050:'Convergência de Zeke', 3053:'Armadura de Sterak',
+  3065:'Visage Espiritual', 3068:'Égide de Fogo Solar', 3071:'Cutelo Negro', 3072:'Sedenta por Sangue', 3075:'Armadura de Espinhos',
+  3085:'Furacão de Runaan', 3089:'Capuz da Morte de Rabadon', 3094:'Canhão Fumegante', 3102:'Véu da Banshee',
+  3107:'Redenção', 3109:'Juramento do Cavaleiro', 3111:'Passos de Mercúrio', 3117:'Botas da Mobilidade', 3135:'Cajado do Vazio',
+  3142:'Lâmina Fantasma de Youmuu', 3156:'Mandíbula de Malmortius', 3157:'Ampulheta de Zhonya', 3158:'Botas Ionianas da Lucidez',
+  3165:'Morellonomicon', 3190:'Medalhão dos Solari de Ferro', 3222:'Bênção de Mikael', 3340:'Totem Sentinela',
+  3363:'Alteração Vidente', 3364:'Lente do Oráculo', 3504:'Incensário Ardente', 3742:'Placa do Homem Morto',
+  3748:'Hidra Titânica', 3814:'Gume da Noite', 3869:'Oposição Celestial', 3876:'Trenó do Solstício', 3877:'Canção de Sangue',
+  4645:'Chama Sombria', 4646:'Tempestade de Fogo', 6333:'Dança da Morte', 6617:'Renovação da Pedra Lunar', 6631:'Quebra-Passos',
+  6655:'Companheiro de Luden', 6672:'Matador de Krakens', 6692:'Eclipse', 6694:'Rancor de Serylda' };
+
+const DAY = 86400000;
+const fmtInt = new Intl.NumberFormat('pt-BR');
+const fmtKda = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtPct = new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 0 });
+const TZ = 'America/Sao_Paulo'; // datas sempre no horário de Brasília
+const fmtDayMonth = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone: TZ });
+const fmtHour = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
+const fmtFull = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: TZ });
+const fmtRel = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' });
+
+/** Singular só para 1 ("1 partida", "0 partidas", "2 partidas"). */
+const plural = (n, one, many) => (n === 1 ? one : many);
+
+/** Número por extenso no feminino (vitórias/partidas), 0–999; acima disso, algarismos. */
+const extenso = (() => {
+  const units = ['zero', 'uma', 'duas', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+  const teens = ['dez', 'onze', 'doze', 'treze', 'catorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+  const tens = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+  const hundreds = ['', 'cento', 'duzentas', 'trezentas', 'quatrocentas', 'quinhentas', 'seiscentas', 'setecentas', 'oitocentas', 'novecentas'];
+  const below100 = (n) => n < 10 ? units[n] : n < 20 ? teens[n - 10] : tens[Math.floor(n / 10)] + (n % 10 ? ' e ' + units[n % 10] : '');
+  return (n) => {
+    if (!Number.isInteger(n) || n < 0 || n > 999) return fmtInt.format(n);
+    if (n < 100) return below100(n);
+    if (n === 100) return 'cem';
+    return hundreds[Math.floor(n / 100)] + (n % 100 ? ' e ' + below100(n % 100) : '');
+  };
+})();
+
+/* =====================================================================
+ * DataSource — interface trocável. O resto do código só conhece isto.
+ *
+ * interface DataSource {
+ *   info: { kind: 'sample' | 'api', label: string, note: string }
+ *   loadPlayers(): Promise<Player[]>   // ver docs/requisitos.md §3.1
+ *   loadMatches(): Promise<Match[]>    // formato Riot Match-V5 (metadata + info)
+ * }
+ * ===================================================================== */
+class InlineDataSource {
+  constructor(elementId = 'spk-data') {
+    this.elementId = elementId;
+    this.info = { kind: 'sample', label: 'Dados de exemplo',
+      note: 'Partidas, jogadores e bios fictícios, só para demonstração. A integração com a Riot API ainda não está ativa.' };
+    this._cache = null;
+  }
+  async _read() {
+    if (this._cache) return this._cache;
+    const el = document.getElementById(this.elementId);
+    if (!el) throw new Error('Bloco de dados #' + this.elementId + ' não encontrado.');
+    const data = JSON.parse(el.textContent);
+    if (!data || !Array.isArray(data.players) || !Array.isArray(data.matches)) throw new Error('JSON inline sem players/matches.');
+    this._cache = data;
+    return data;
+  }
+  async loadPlayers() { return (await this._read()).players; }
+  async loadMatches() { return (await this._read()).matches; }
+}
+
+/**
+ * RiotProxyDataSource — STUB (não ativo na v1).
+ * Fala com um backend PRÓPRIO que guarda a chave da Riot e devolve dados já no formato acima:
+ *   GET {baseUrl}/players  -> Player[]
+ *   GET {baseUrl}/matches  -> Match[] (Match-V5)
+ * O backend resolve Riot ID -> PUUID (Account-V1, roteamento regional "americas" para BR1),
+ * lista IDs (Match-V5 /by-puuid/{puuid}/ids) e baixa cada partida (Match-V5 /matches/{id}), com cache.
+ * A chave da Riot NUNCA vem para o navegador. Para ativar: CONFIG.dataSource = 'riot-proxy'.
+ */
+class RiotProxyDataSource {
+  constructor(baseUrl = CONFIG.proxyBaseUrl) {
+    this.baseUrl = String(baseUrl).replace(/\/+$/, '');
+    this.info = { kind: 'api', label: 'Dados da Riot API', note: 'Partidas obtidas da Riot API por meio do backend do SPK.' };
+  }
+  async _get(path) {
+    const res = await fetch(this.baseUrl + path, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error('Backend respondeu ' + res.status + ' em ' + path);
+    return res.json();
+  }
+  async loadPlayers() { return this._get('/players'); }
+  async loadMatches() { return this._get('/matches'); }
+}
+
+function createDataSource() {
+  return CONFIG.dataSource === 'riot-proxy' ? new RiotProxyDataSource(CONFIG.proxyBaseUrl) : new InlineDataSource('spk-data');
+}
+
+/* =====================================================================
+ * Validate — normaliza o que vem da DataSource antes do Stats.
+ * Campo numérico ausente/inválido vira 0; partida sem estrutura mínima é descartada.
+ * Tudo com aviso no console (nunca NaN/undefined na tela).
+ * ===================================================================== */
+const Validate = (() => {
+  const NUM = ['kills', 'deaths', 'assists', 'totalMinionsKilled', 'goldEarned', 'totalDamageDealtToChampions', 'visionScore',
+    'item0', 'item1', 'item2', 'item3', 'item4', 'item5', 'item6'];
+  const str = (v) => (typeof v === 'string' ? v : v === null || v === undefined ? '' : String(v));
+  const finite = (v) => (v === null || v === undefined || v === '' ? NaN : Number(v));
+
+  function players(list) {
+    if (!Array.isArray(list)) throw new Error('A lista de jogadores não é um array.');
+    const out = [], seen = new Set();
+    let dropped = 0;
+    for (const p of list) {
+      const puuid = p && str(p.puuid);
+      if (!puuid || seen.has(puuid)) { dropped++; continue; }
+      seen.add(puuid);
+      const gameName = str(p.riotIdGameName);
+      out.push({ ...p, puuid, riotIdGameName: gameName, riotIdTagline: str(p.riotIdTagline),
+        displayName: str(p.displayName) || gameName || 'Jogador', mainRole: str(p.mainRole), bio: str(p.bio) });
+    }
+    if (dropped) console.warn(`[SPK] ${dropped} jogador(es) ignorado(s): sem puuid ou repetido.`);
+    return out;
+  }
+
+  function matches(list) {
+    if (!Array.isArray(list)) throw new Error('A lista de partidas não é um array.');
+    const out = [], seen = new Set();
+    let dropped = 0, fixed = 0;
+    for (const m of list) {
+      const info = m && m.info;
+      const parts = info && info.participants;
+      const time = finite(info && info.gameCreation), duration = finite(info && info.gameDuration);
+      const matchId = str(m && m.metadata && m.metadata.matchId);
+      if (!info || !Array.isArray(parts) || !parts.length || !Number.isFinite(time) || !Number.isFinite(duration) || duration < 0
+        || !matchId || seen.has(matchId)) { dropped++; continue; }
+      seen.add(matchId);
+      const ps = parts.map((p, i) => {
+        const src = p && typeof p === 'object' ? p : {};
+        const q = { ...src, puuid: str(src.puuid), riotIdGameName: str(src.riotIdGameName), riotIdTagline: str(src.riotIdTagline),
+          championName: str(src.championName), teamPosition: str(src.teamPosition), win: src.win === true };
+        let team = finite(src.teamId);
+        if (team !== 100 && team !== 200) { team = i < parts.length / 2 ? 100 : 200; fixed++; }
+        q.teamId = team;
+        for (const f of NUM) {
+          const v = finite(src[f]);
+          if (Number.isFinite(v)) q[f] = v;
+          else { q[f] = 0; if (!f.startsWith('item') || src[f] !== undefined) fixed++; }
+        }
+        return q;
+      });
+      const queueId = finite(info.queueId);
+      out.push({ metadata: { ...m.metadata, matchId, participants: ps.map((p) => p.puuid) },
+        info: { ...info, gameCreation: time, gameDuration: duration, gameVersion: str(info.gameVersion),
+          queueId: Number.isFinite(queueId) ? queueId : 0, participants: ps } });
+    }
+    if (dropped) console.warn(`[SPK] ${dropped} partida(s) descartada(s): sem info/participantes/data/duração/ID ou repetida(s).`);
+    if (fixed) console.warn(`[SPK] ${fixed} campo(s) ausente(s) ou inválido(s) nas partidas; usados valores padrão (0).`);
+    return out;
+  }
+  return { players, matches };
+})();
+
+/* =====================================================================
+ * Stats — funções puras (sem DOM)
+ *
+ * Regras (docs/requisitos.md + decisões do PO):
+ * - "Partida em grupo" = ≥ 2 membros do SPK no mesmo time.
+ * - "Nosso time" de uma partida = lado com mais membros do SPK; no empate, o lado do primeiro
+ *   membro na ordem de players. Os números de cada jogador e o filtro por jogador usam a
+ *   entrada do próprio participante (inclusive quando ele caiu no time adversário).
+ * - KDA = (ΣK + ΣA) / max(1, ΣD), sobre os totais.
+ * ===================================================================== */
+const Stats = {
+  kda(k, d, a) { return (k + a) / Math.max(1, d); },
+
+  sumKda(parts) {
+    let k = 0, d = 0, a = 0;
+    for (const p of parts) { k += p.kills; d += p.deaths; a += p.assists; }
+    return { k, d, a, ratio: Stats.kda(k, d, a) };
+  },
+
+  annotate(matches, players) {
+    const order = new Map(players.map((p, i) => [p.puuid, i]));
+    return matches.map((raw) => {
+      const parts = raw.info.participants;
+      const spk = parts.filter((p) => order.has(p.puuid));
+      const teams = new Map();
+      for (const p of spk) {
+        const t = teams.get(p.teamId) || { n: 0, first: Infinity };
+        t.n++; t.first = Math.min(t.first, order.get(p.puuid)); teams.set(p.teamId, t);
+      }
+      let spkTeamId = parts[0].teamId, best = null;
+      for (const [teamId, t] of teams) if (!best || t.n > best.n || (t.n === best.n && t.first < best.first)) { best = t; spkTeamId = teamId; }
+      const m = { id: raw.metadata.matchId, raw, time: raw.info.gameCreation, duration: raw.info.gameDuration, queueId: raw.info.queueId,
+        spk, spkIds: new Set(spk.map((p) => p.puuid)), spkTeamId, views: new Map() };
+      const v = Stats.view(m, spkTeamId);
+      m.win = v.win; m.members = v.members; m.isGroup = v.members.length >= 2;
+      return m;
+    }).sort((a, b) => b.time - a.time);
+  },
+
+  /** Partida vista do lado `teamId`: aliados, inimigos, resultado e membros do SPK de cada lado. */
+  view(m, teamId) {
+    let v = m.views.get(teamId);
+    if (!v) {
+      const parts = m.raw.info.participants;
+      const ally = parts.filter((p) => p.teamId === teamId), enemy = parts.filter((p) => p.teamId !== teamId);
+      v = { teamId, ally, enemy, win: ally.some((p) => p.win),
+        members: ally.filter((p) => m.spkIds.has(p.puuid)), rivals: enemy.filter((p) => m.spkIds.has(p.puuid)) };
+      m.views.set(teamId, v);
+    }
+    return v;
+  },
+
+  /** Lado de referência: o do jogador filtrado (se ele jogou), senão o "nosso time". */
+  perspective(m, puuid) {
+    if (puuid) { const p = m.spk.find((x) => x.puuid === puuid); if (p) return p.teamId; }
+    return m.spkTeamId;
+  },
+
+  group(ann) {
+    const g = ann.filter((m) => m.isGroup);
+    const wins = g.filter((m) => m.win).length;
+    const kda = Stats.sumKda(g.flatMap((m) => m.members));
+    const avgDur = g.length ? g.reduce((s, m) => s + m.duration, 0) / g.length : 0;
+    return { games: g.length, wins, losses: g.length - wins, winrate: g.length ? wins / g.length : null,
+      kda: g.length ? kda.ratio : null, avgDur, total: ann.length, form: g.slice(0, 10).map((m) => m.win) };
+  },
+
+  /** Entradas do jogador (qualquer lado), da mais recente para a mais antiga. */
+  entries(ann, puuid) {
+    const out = [];
+    for (const m of ann) { const p = m.spk.find((x) => x.puuid === puuid); if (p) out.push({ m, p }); }
+    return out;
+  },
+
+  player(ann, puuid) {
+    const rows = Stats.entries(ann, puuid);
+    const parts = rows.map((r) => r.p);
+    const wins = parts.filter((p) => p.win).length;
+    const champs = new Map();
+    for (const p of parts) {
+      const c = champs.get(p.championName) || { name: p.championName, games: 0, wins: 0 };
+      c.games++; if (p.win) c.wins++; champs.set(p.championName, c);
+    }
+    const top = [...champs.values()].sort((a, b) => b.games - a.games || b.wins - a.wins || a.name.localeCompare(b.name));
+    return { games: parts.length, wins, winrate: parts.length ? wins / parts.length : null,
+      kda: parts.length ? Stats.sumKda(parts).ratio : null, top3: top.slice(0, 3), form: parts.slice(0, 8).map((p) => p.win) };
+  },
+
+  /** RF-14: maior KDA nos 7 dias até a partida mais recente (mín. 2 partidas); desempate por dano médio. */
+  mvp(ann, players, minGames = 2) {
+    if (!ann.length) return null;
+    const latest = Math.max(...ann.map((m) => m.time));
+    const recent = ann.filter((m) => m.time >= latest - 7 * DAY);
+    const rows = players.map((pl) => {
+      const parts = Stats.entries(recent, pl.puuid).map((r) => r.p);
+      const dmg = parts.reduce((s, p) => s + p.totalDamageDealtToChampions, 0);
+      return { player: pl, games: parts.length, kda: Stats.sumKda(parts).ratio, avgDmg: parts.length ? dmg / parts.length : 0 };
+    }).filter((r) => r.games >= minGames);
+    rows.sort((a, b) => b.kda - a.kda || b.avgDmg - a.avgDmg);
+    return rows[0] || null;
+  },
+
+  /** RF-15: par no mesmo time com maior winrate (mín. 3 partidas juntos);
+   *  desempate: mais partidas juntos, depois maior dano médio da dupla por partida. */
+  bestDuo(ann, players, minGames = 3) {
+    const rows = [];
+    for (let i = 0; i < players.length; i++) for (let j = i + 1; j < players.length; j++) {
+      const a = players[i], b = players[j];
+      let games = 0, wins = 0, dmg = 0;
+      for (const m of ann) {
+        const pa = m.spk.find((p) => p.puuid === a.puuid), pb = pa && m.spk.find((p) => p.puuid === b.puuid);
+        if (!pa || !pb || pa.teamId !== pb.teamId) continue;
+        games++; if (pa.win) wins++;
+        dmg += pa.totalDamageDealtToChampions + pb.totalDamageDealtToChampions;
+      }
+      if (games >= minGames) rows.push({ a, b, games, wins, winrate: wins / games, avgDmg: dmg / games });
+    }
+    rows.sort((x, y) => (y.wins * x.games - x.wins * y.games) || y.games - x.games || y.avgDmg - x.avgDmg);
+    return rows[0] || null;
+  },
+
+  /** Recorde de um campo numérico entre as entradas dos membros (maior abate, mais visão). */
+  record(ann, players, field) {
+    let best = null;
+    for (const m of ann) for (const p of m.spk) {
+      if (!best || p[field] > best.part[field]) best = { part: p, match: m, player: players.find((x) => x.puuid === p.puuid) };
+    }
+    return best;
+  },
+
+  passes(m, f) {
+    if (f.player !== 'all' && !m.spkIds.has(f.player)) return false;
+    if (f.queue !== 'all' && String(m.queueId) !== f.queue) return false;
+    if (f.result !== 'all') {
+      const v = Stats.view(m, Stats.perspective(m, f.player !== 'all' ? f.player : null));
+      if ((f.result === 'win') !== v.win) return false;
+    }
+    return true;
+  },
+  filter(ann, f) { return ann.filter((m) => Stats.passes(m, f)); },
+};
+
+/* =====================================================================
+ * Render — DOM. Texto dos dados entra só via textContent (h()).
+ * ===================================================================== */
+const Render = (() => {
+  /** h('tag', {attrs}, ...filhos) — strings viram nós de texto (nunca HTML). */
+  function h(tag, attrs, ...children) {
+    const el = document.createElement(tag);
+    if (attrs) for (const [k, v] of Object.entries(attrs)) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? '' : String(v));
+    }
+    append(el, children);
+    return el;
+  }
+  function append(el, children) {
+    for (const c of [children].flat(Infinity)) {
+      if (c === null || c === undefined || c === false) continue;
+      el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+    }
+    return el;
+  }
+  const clear = (el) => { el.replaceChildren(); return el; };
+
+  const champLabel = (id) => CHAMP_NAMES[id] || String(id || '?');
+  const initials = (name) => {
+    const words = String(name).replace(/[^\p{L}\p{N} ]/gu, ' ').trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return '?';
+    return (words.length > 1 ? words[0][0] + words[1][0] : words[0].slice(0, 2)).toUpperCase();
+  };
+
+  // Imagens: se as primeiras falharem todas (Data Dragon bloqueado/CSP), para de pedir e usa só iniciais.
+  const imgStats = { ok: 0, fail: 0 };
+  const imagesOn = () => CONFIG.useImages && !(imgStats.fail >= 4 && imgStats.ok === 0);
+  function fallback(label, size, decorative) {
+    const box = `width:${size}px;height:${size}px`;
+    return decorative
+      ? h('span', { class: 'fallback', 'aria-hidden': 'true', style: box }, initials(label))
+      : h('span', { class: 'fallback', role: 'img', 'aria-label': label, title: label, style: box }, initials(label));
+  }
+  function imgOrFallback(src, label, size, decorative) {
+    if (!src || !imagesOn()) return fallback(label, size, decorative);
+    const img = h('img', { class: 'img', src, alt: decorative ? '' : label, title: decorative ? null : label,
+      width: size, height: size, loading: 'lazy', decoding: 'async' });
+    img.addEventListener('load', () => { imgStats.ok++; }, { once: true });
+    img.addEventListener('error', () => { imgStats.fail++; img.replaceWith(fallback(label, size, decorative)); }, { once: true });
+    return img;
+  }
+  const safeId = (s) => /^[A-Za-z0-9]+$/.test(String(s)) ? String(s) : null;
+  const champImg = (id, size, decorative) => {
+    const s = safeId(id);
+    return imgOrFallback(s ? `https://ddragon.leagueoflegends.com/cdn/${CONFIG.ddragonVersion}/img/champion/${s}.png` : null, champLabel(id), size, decorative);
+  };
+  const itemImg = (id, size = 20) => {
+    if (!id) return h('span', { class: 'item-empty', 'aria-hidden': 'true', style: `width:${size}px;height:${size}px` });
+    const name = ITEM_NAMES[id] || 'Item ' + id;
+    const n = Number.isInteger(id) && id > 0 ? id : null;
+    return imgOrFallback(n ? `https://ddragon.leagueoflegends.com/cdn/${CONFIG.ddragonVersion}/img/item/${n}.png` : null, name, size, false);
+  };
+
+  const nameOf = (p) => String(p.displayName || p.riotIdGameName);
+  const queueLabel = (q) => QUEUES[q] || 'Fila ' + q;
+  const pct = (v) => v === null ? '—' : fmtPct.format(v);
+  const kdaTxt = (v) => v === null ? '—' : fmtKda.format(v);
+  const kdaLine = (p) => `${p.kills}/${p.deaths}/${p.assists}`;
+  /** mm:ss — arredonda antes de separar (nunca "29:60"). */
+  function dur(s) {
+    if (!Number.isFinite(s) || s < 0) return '—';
+    const t = Math.round(s);
+    return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+  }
+  function relTime(ts, now = Date.now()) {
+    const diff = ts - now, abs = Math.abs(diff);
+    if (abs < 3600000) return fmtRel.format(Math.round(diff / 60000), 'minute');
+    if (abs < DAY) return fmtRel.format(Math.round(diff / 3600000), 'hour');
+    if (abs < 30 * DAY) return fmtRel.format(Math.round(diff / DAY), 'day');
+    return fmtRel.format(Math.round(diff / (30 * DAY)), 'month');
+  }
+  const iso = (ts) => new Date(ts).toISOString();
+  const timeEl = (ts, text) => h('time', { datetime: iso(ts), title: fmtFull.format(ts) }, text);
+  const domKey = (s) => String(s).replace(/[^A-Za-z0-9_-]/g, '_');
+  const riotId = (name, tag) => h('span', { class: 'rid' }, h('span', { class: 'rid-name' }, String(name || '')), h('span', { class: 'tag' }, '#' + String(tag || '')));
+  const resultsLabel = (list) => list.map((w) => (w ? 'vitória' : 'derrota')).join(', ');
+  const pips = (list, label) => h('div', { class: 'pips', role: 'img', 'aria-label': label },
+    list.map((w) => h('span', { class: 'pip' + (w ? ' win' : ''), 'aria-hidden': 'true' }, w ? 'V' : 'D')));
+  const chevron = () => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('class', 'chev'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M3.5 6l4.5 4.5L12.5 6'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '1.8'); path.setAttribute('stroke-linecap', 'round'); path.setAttribute('stroke-linejoin', 'round');
+    svg.append(path); return svg;
+  };
+
+  /* ---------- Hero ---------- */
+  function heroMeta(el, ann, updatedAt) {
+    clear(el);
+    if (!ann.length) { el.textContent = 'Nenhuma partida carregada ainda.'; return; }
+    const first = Math.min(...ann.map((m) => m.time)), last = Math.max(...ann.map((m) => m.time));
+    append(el, ['Partidas de ', timeEl(first, fmtDayMonth.format(first)), ' a ', timeEl(last, fmtDayMonth.format(last)),
+      ' · Atualizado ', timeEl(updatedAt, relTime(updatedAt))]);
+  }
+  function text(el, t) { clear(el).textContent = t; }
+  function headline(el, g) {
+    if (!g.games) { text(el, 'Ainda sem partidas em grupo. A fila está esperando.'); return; }
+    const w = g.wins ? extenso(g.wins) : 'nenhuma';
+    const first = `${w.charAt(0).toUpperCase()}${w.slice(1)} ${plural(Math.max(g.wins, 1), 'vitória', 'vitórias')} em ${extenso(g.games)}.`;
+    const tail = g.wins * 2 > g.games ? 'A fila fecha a quinzena no positivo.'
+      : g.wins * 2 === g.games ? 'A fila fecha a quinzena no zero a zero.' : 'A fila fecha a quinzena no negativo.';
+    text(el, `${first} ${tail}`);
+  }
+
+  /* ---------- 01 Placar ---------- */
+  const statCell = (label, dd) => h('div', { class: 'stat' }, h('dt', { class: 'micro' }, label), dd);
+  function board(el, g) {
+    clear(el);
+    const has = g.games > 0;
+    const wrCls = !has ? null : g.winrate >= 0.5 ? 'is-win' : 'is-loss';
+    append(el, [
+      statCell('Partidas', h('dd', null, fmtInt.format(g.games),
+        h('small', null, g.total > g.games ? `em grupo, de ${fmtInt.format(g.total)}` : 'em grupo'))),
+      statCell('Recorde', h('dd', null, has ? [
+        h('span', { 'aria-hidden': 'true' }, `${fmtInt.format(g.wins)}–${fmtInt.format(g.losses)}`),
+        h('small', { 'aria-hidden': 'true' }, 'V–D'),
+        h('span', { class: 'sr-only' }, `${fmtInt.format(g.wins)} ${plural(g.wins, 'vitória', 'vitórias')} e ${fmtInt.format(g.losses)} ${plural(g.losses, 'derrota', 'derrotas')}`),
+      ] : '—')),
+      statCell('Winrate juntos', h('dd', { class: wrCls }, pct(g.winrate))),
+      statCell('KDA do grupo', h('dd', null, kdaTxt(g.kda))),
+      statCell('Duração média', h('dd', null, has ? [dur(g.avgDur), h('small', null, 'min')] : '—')),
+    ]);
+  }
+  function boardPlaceholder(el) {
+    clear(el);
+    append(el, ['Partidas', 'Recorde', 'Winrate juntos', 'KDA do grupo', 'Duração média'].map((l) => statCell(l, h('dd', null, '—'))));
+  }
+  function groupForm(el, g) {
+    clear(el);
+    if (!g.form.length) { append(el, h('p', { class: 'micro' }, 'Sem partidas em grupo ainda')); return; }
+    const n = g.form.length;
+    append(el, [h('p', { class: 'micro' }, n === 1 ? 'Última partida em grupo' : `Últimas ${n} · mais recente à esquerda`),
+      pips(g.form, `${n === 1 ? 'Última partida' : `Últimas ${n} partidas`} em grupo, da mais recente para a mais antiga: ${resultsLabel(g.form)}`)]);
+  }
+
+  /* ---------- 02 Jogadores ---------- */
+  /** Cria o card uma vez; o estado "filtrado" é atualizado por setPlayerFiltered (sem recriar). */
+  function playerCard(p, s, onShow) {
+    const name = nameOf(p), id = 'pn-' + domKey(p.puuid);
+    const metric = (label, value, cls) => h('div', null, h('dt', null, label), h('dd', { class: cls || null }, value));
+    const wrCls = s.winrate === null ? null : s.winrate >= 0.5 ? 'is-win' : 'is-loss';
+    const role = POS_SHORT[p.mainRole] ?? (p.mainRole || '—');
+    const btn = h('button', { type: 'button', class: 'btn btn-ghost', 'aria-pressed': 'false', onclick: () => onShow(p.puuid) }, 'Ver partidas de ' + name);
+    const champs = s.top3.map((c, i) => [
+      i ? h('span', { class: 'sep', 'aria-hidden': 'true' }, ' · ') : null,
+      h('span', null, champLabel(c.name), ' ', h('span', { class: 'cnt' }, fmtInt.format(c.games)),
+        h('span', { class: 'sr-only' }, ` ${plural(c.games, 'partida', 'partidas')}${i < s.top3.length - 1 ? ';' : ''}`))]);
+    const card = h('article', { class: 'player', 'aria-labelledby': id },
+      h('div', { class: 'player-top' },
+        h('div', { class: 'player-id' },
+          h('h3', { class: 'player-name', id }, name),
+          h('p', { class: 'riot-id' }, h('b', null, p.riotIdGameName), h('span', { class: 'tag' }, '#' + p.riotIdTagline))),
+        h('span', { class: 'role' }, h('span', { 'aria-hidden': 'true' }, role),
+          h('span', { class: 'sr-only' }, 'Rota principal: ' + (POSITIONS[p.mainRole] || p.mainRole || 'não informada')))),
+      p.bio ? h('p', { class: 'bio' }, `“${p.bio}”`) : null,
+      h('dl', { class: 'nums' }, metric('Partidas', fmtInt.format(s.games)), metric('Winrate', pct(s.winrate), wrCls), metric('KDA', kdaTxt(s.kda))),
+      h('div', null, h('p', { class: 'micro lbl' }, 'Mais jogados'),
+        s.top3.length ? h('p', { class: 'champs' }, champs) : h('p', { class: 'champs muted' }, 'Nenhuma partida ainda')),
+      s.form.length ? h('div', null, h('p', { class: 'micro lbl' }, s.form.length === 1 ? 'Última' : `Últimas ${s.form.length}`),
+        pips(s.form, `${s.form.length === 1 ? 'Última partida' : `Últimas ${s.form.length} partidas`} de ${name}, da mais recente para a mais antiga: ${resultsLabel(s.form)}`)) : null,
+      btn);
+    return { card, btn, name };
+  }
+  function setPlayerFiltered(entry, on) {
+    entry.card.classList.toggle('is-filtered', on);
+    entry.btn.setAttribute('aria-pressed', String(on));
+    entry.btn.textContent = (on ? 'Filtrando partidas de ' : 'Ver partidas de ') + entry.name;
+  }
+  function playersPlaceholder(el, msg) {
+    clear(el);
+    if (msg) append(el, h('p', { class: 'muted' }, msg));
+    else append(el, [1, 2, 3].map(() => h('div', { class: 'skel', 'aria-hidden': 'true' })));
+  }
+
+  /* ---------- 03 Destaques ---------- */
+  function hlCard(label, lead, big, body) {
+    return h('article', { class: 'highlight' + (lead ? ' lead' : '') }, h('h3', { class: 'hl-k' }, label),
+      big === null ? h('p', { class: 'hl-empty' }, body || 'Dados insuficientes') : [h('p', { class: 'hl-h' }, big), h('p', { class: 'hl-p' }, body)]);
+  }
+  const LABELS = ['MVP da semana', 'Melhor dupla', 'Maior abate', 'Mais visão'];
+  function highlights(el, d) {
+    clear(el);
+    const where = (r) => `${queueLabel(r.match.queueId)} · ${fmtDayMonth.format(r.match.time)}`;
+    const { mvp, duo, kills, vision } = d;
+    append(el, [
+      mvp ? hlCard(LABELS[0], true, nameOf(mvp.player), [h('b', null, 'KDA ' + kdaTxt(mvp.kda)),
+        ` em ${fmtInt.format(mvp.games)} ${plural(mvp.games, 'partida', 'partidas')} nos últimos 7 dias.`, mvp.player.bio ? ` ${mvp.player.bio}` : ''])
+        : hlCard(LABELS[0], true, null),
+      duo ? hlCard(LABELS[1], false, `${nameOf(duo.a)} + ${nameOf(duo.b)}`, [
+        h('b', null, `${fmtInt.format(duo.wins)} ${plural(duo.wins, 'vitória', 'vitórias')} em ${fmtInt.format(duo.games)}`),
+        ` lado a lado, ${pct(duo.winrate)}.`]) : hlCard(LABELS[1], false, null),
+      kills ? hlCard(LABELS[2], false, `${fmtInt.format(kills.part.kills)} ${plural(kills.part.kills, 'abate', 'abates')}`, [
+        h('b', null, nameOf(kills.player)), ` de ${champLabel(kills.part.championName)}, ${kdaLine(kills.part)} · ${where(kills)}.`])
+        : hlCard(LABELS[2], false, null),
+      vision ? hlCard(LABELS[3], false, `${fmtInt.format(vision.part.visionScore)} de visão`, [
+        h('b', null, nameOf(vision.player)), ` de ${champLabel(vision.part.championName)} · ${where(vision)}.`])
+        : hlCard(LABELS[3], false, null),
+    ]);
+  }
+  function highlightsPlaceholder(el, msg) {
+    clear(el);
+    append(el, LABELS.map((l, i) => hlCard(l, i === 0, null, msg)));
+  }
+
+  /* ---------- 04 Histórico ---------- */
+  /** Chips de filtro (um <button aria-pressed> por opção) dentro do <fieldset>. */
+  function chips(fieldset, options, current, onPick) {
+    fieldset.querySelectorAll('.chip').forEach((b) => b.remove());
+    append(fieldset, options.map(([value, label]) => h('button', { type: 'button', class: 'chip', 'data-value': value,
+      'aria-pressed': String(value === current), onclick: () => onPick(value) }, label)));
+  }
+  function syncChips(fieldset, current) {
+    for (const b of fieldset.querySelectorAll('.chip')) b.setAttribute('aria-pressed', String(b.dataset.value === current));
+  }
+
+  /** Linha de partida vista do lado `teamId`. Criada uma vez e reaproveitada pelos filtros. */
+  function matchRow(m, teamId, ctx) {
+    const v = Stats.view(m, teamId);
+    const res = v.win ? 'Vitória' : 'Derrota';
+    const queue = queueLabel(m.queueId);
+    const key = domKey(m.id), bid = 'mh-' + key, pid = 'mp-' + key;
+    const who = (p) => ctx.nameByPuuid.get(p.puuid) || String(p.riotIdGameName);
+    const pick = (p) => h('span', { class: 'pick' }, h('b', null, who(p)), ' ', h('span', { class: 'sr-only' }, 'de '),
+      champLabel(p.championName), h('span', { class: 'sr-only' }, ','), h('i', null, kdaLine(p)));
+    const togText = h('span', null, 'Ver detalhes');
+    const head = h('button', { type: 'button', class: 'match-head', id: bid, 'aria-expanded': 'false', 'aria-controls': pid },
+      h('span', { class: 'res', 'aria-hidden': 'true' }, v.win ? 'V' : 'D'),
+      h('span', { class: 'm-meta' }, h('span', { class: 'result' }, res),
+        h('span', null, queue, h('span', { 'aria-hidden': 'true' }, ' · '), h('span', { class: 'sr-only' }, ', duração '), h('span', { class: 'mono' }, dur(m.duration)))),
+      h('span', { class: 'squad' },
+        v.members.length ? v.members.map(pick) : h('span', { class: 'muted' }, 'Sem membros do SPK neste lado'),
+        v.rivals.length ? [h('span', { class: 'vs' }, 'contra'), v.rivals.map(pick)] : null),
+      h('time', { class: 'when', datetime: iso(m.time), title: fmtFull.format(m.time) },
+        h('b', null, relTime(m.time)), h('span', { class: 'mono' }, `${fmtDayMonth.format(m.time)} · ${fmtHour.format(m.time)}`)),
+      h('span', { class: 'tog', 'aria-hidden': 'true' }, togText, chevron()));
+    const panel = h('div', { class: 'panel', id: pid, role: 'region', 'aria-labelledby': bid, hidden: true });
+    const article = h('article', { class: 'match ' + (v.win ? 'win' : 'loss'), 'aria-label': `${res}, ${queue}, ${fmtFull.format(m.time)}` }, head, panel);
+    const li = h('li', null, article);
+    function setOpen(open) {
+      head.setAttribute('aria-expanded', String(open));
+      article.classList.toggle('open', open);
+      togText.textContent = open ? 'Fechar' : 'Ver detalhes';
+      if (!open) { panel.classList.remove('shown'); panel.hidden = true; ctx.expanded.delete(m.id); return; }
+      if (!panel.firstChild) panel.append(h('div', { class: 'panel-inner' }, matchDetail(m, v, ctx)));
+      panel.hidden = false; ctx.expanded.add(m.id);
+      markScrollables(panel);
+      requestAnimationFrame(() => panel.classList.add('shown'));
+    }
+    head.addEventListener('click', () => setOpen(head.getAttribute('aria-expanded') !== 'true'));
+    if (ctx.expanded.has(m.id)) { setOpen(true); panel.classList.add('shown'); }
+    return li;
+  }
+
+  function matchDetail(m, v, ctx) {
+    const isSpk = (p) => ctx.memberIds.has(p.puuid);
+    const team = (title, parts, win) => {
+      const resTxt = win ? 'Vitória' : 'Derrota';
+      const cap = `${title} — ${resTxt}`;
+      const who = (p) => [riotId(p.riotIdGameName, p.riotIdTagline), isSpk(p) ? h('span', { class: 'badge-spk' }, 'SPK') : null];
+      const pos = (p) => POSITIONS[p.teamPosition] || p.teamPosition || '—';
+      const items = (p) => h('span', { class: 'items' }, [0, 1, 2, 3, 4, 5, 6].map((i) => itemImg(p['item' + i], 20)));
+      const cards = h('ul', { class: 'pcards', 'aria-label': cap }, parts.map((p) => h('li', { class: 'pcard' + (isSpk(p) ? ' spk' : '') },
+        h('div', { class: 'pcard-top' }, champImg(p.championName, 32, true),
+          h('div', { class: 'pcard-who' }, h('div', null, who(p)), h('div', { class: 'muted' }, champLabel(p.championName), ' · ', pos(p)))),
+        h('dl', null, [['K/D/A', kdaLine(p)], ['CS', fmtInt.format(p.totalMinionsKilled)], ['Ouro', fmtInt.format(p.goldEarned)],
+          ['Dano', fmtInt.format(p.totalDamageDealtToChampions)], ['Visão', fmtInt.format(p.visionScore)]]
+          .map(([k, val]) => h('div', null, h('dt', null, k), h('dd', null, val)))),
+        items(p))));
+      const cols = ['Campeão', 'Jogador', 'Posição', 'K/D/A', 'CS', 'Ouro', 'Dano', 'Visão', 'Itens'];
+      const numeric = new Set(['CS', 'Ouro', 'Dano', 'Visão']);
+      const table = h('div', { class: 'table-wrap', 'data-label': cap }, h('table', null, h('caption', { class: 'sr-only' }, cap),
+        h('thead', null, h('tr', null, cols.map((c) => h('th', { scope: 'col', class: numeric.has(c) ? 'n' : null }, c)))),
+        h('tbody', null, parts.map((p) => h('tr', { class: isSpk(p) ? 'spk' : null },
+          h('td', null, h('span', { class: 'champ-cell' }, champImg(p.championName, 28, true), champLabel(p.championName))),
+          h('td', null, who(p)),
+          h('td', { title: pos(p) }, POS_SHORT[p.teamPosition] ?? p.teamPosition),
+          h('td', { class: 'k' }, kdaLine(p)),
+          h('td', { class: 'n' }, fmtInt.format(p.totalMinionsKilled)),
+          h('td', { class: 'n' }, fmtInt.format(p.goldEarned)),
+          h('td', { class: 'n' }, fmtInt.format(p.totalDamageDealtToChampions)),
+          h('td', { class: 'n' }, fmtInt.format(p.visionScore)),
+          h('td', null, items(p)))))));
+      return h('div', { class: 'team' }, h('h3', null, title + ' — ', h('span', { class: win ? 'r-win' : 'r-loss' }, resTxt)), cards, table);
+    };
+    const patch = String(m.raw.info.gameVersion || '').split('.').slice(0, 2).join('.');
+    return h('div', { class: 'panel-body' },
+      h('p', { class: 'match-meta' }, [QUEUES_LONG[m.queueId] || 'Fila ' + m.queueId, fmtFull.format(m.time), dur(m.duration),
+        patch ? 'Patch ' + patch : null, m.id].filter(Boolean).join(' · ')),
+      team('Seu time', v.ally, v.win), team('Time inimigo', v.enemy, !v.win));
+  }
+
+  /** Tabela larga com rolagem interna: vira alvo de Tab (e região nomeada) só quando de fato rola. */
+  function markScrollables(root = document) {
+    for (const w of root.querySelectorAll('.table-wrap')) {
+      const scrolls = w.offsetParent !== null && w.scrollWidth > w.clientWidth + 1;
+      if (scrolls) { w.setAttribute('tabindex', '0'); w.setAttribute('role', 'region'); w.setAttribute('aria-label', w.dataset.label + ' (rolagem horizontal)'); }
+      else { w.removeAttribute('tabindex'); w.removeAttribute('role'); w.removeAttribute('aria-label'); }
+    }
+  }
+
+  function listLoading(stateEl, listEl) {
+    clear(listEl);
+    clear(stateEl).append(h('p', { role: 'status', class: 'muted', style: 'margin-bottom:8px' }, 'Carregando…'),
+      h('div', { class: 'matches', 'aria-hidden': 'true' }, [1, 2, 3, 4, 5].map(() => h('div', { class: 'skeleton' }))));
+  }
+  function listError(stateEl, listEl, onRetry) {
+    clear(listEl);
+    clear(stateEl).append(h('div', { class: 'state error', role: 'alert' },
+      h('p', { style: 'font-weight:600' }, 'Não deu para carregar as partidas.'),
+      h('p', { class: 'muted' }, 'Verifique a conexão e tente de novo.'),
+      h('button', { type: 'button', class: 'btn btn-primary', onclick: onRetry }, 'Tentar novamente')));
+  }
+  function listEmpty(stateEl, onClear) {
+    clear(stateEl).append(h('div', { class: 'state' }, h('p', null, 'Nenhuma partida com esses filtros.'),
+      h('button', { type: 'button', class: 'btn btn-ghost', onclick: onClear }, 'Limpar filtros')));
+  }
+  function listNone(stateEl) {
+    clear(stateEl).append(h('div', { class: 'state' }, h('p', null, 'Nenhuma partida registrada ainda.'),
+      h('p', { class: 'muted' }, 'Assim que o grupo jogar, as partidas aparecem aqui.')));
+  }
+
+  return { h, clear, text, heroMeta, headline, board, boardPlaceholder, groupForm, playerCard, setPlayerFiltered, playersPlaceholder,
+    highlights, highlightsPlaceholder, chips, syncChips, matchRow, markScrollables, listLoading, listError, listEmpty, listNone, queueLabel };
+})();
+
+/* =====================================================================
+ * App — estado, filtros e orquestração
+ * ===================================================================== */
+const App = (() => {
+  const $ = (id) => document.getElementById(id);
+  const DEFAULTS = { player: 'all', result: 'all', queue: 'all' };
+  const state = { source: null, players: [], ann: [], filters: { ...DEFAULTS }, expanded: new Set(), ctx: null,
+    rows: new Map(), cards: new Map() };
+  const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isDirty = () => Object.keys(DEFAULTS).some((k) => state.filters[k] !== DEFAULTS[k]);
+
+  function setFiltersEnabled(on) {
+    for (const fs of $('filters').querySelectorAll('fieldset')) fs.disabled = !on;
+  }
+  function queueOptions(ann) {
+    const extra = [...new Set(ann.map((m) => m.queueId))].filter((q) => !QUEUE_ORDER.includes(q)).sort((a, b) => a - b);
+    return [['all', 'Todas'], ...[...QUEUE_ORDER, ...extra].map((q) => [String(q), Render.queueLabel(q)])];
+  }
+  function syncFilterUi() {
+    const f = state.filters;
+    Render.syncChips($('fs-player'), f.player);
+    Render.syncChips($('fs-result'), f.result);
+    Render.syncChips($('fs-queue'), f.queue);
+    $('clear').hidden = !state.ctx || !isDirty();
+  }
+
+  /** Filtra sem recriar: cada linha é criada uma vez e só alterna `hidden`.
+   *  Partida com membros dos dois lados é redesenhada do lado do jogador filtrado. */
+  function renderList() {
+    if (!state.ctx) return; // sem dados (carregando/erro): nada a filtrar
+    const f = state.filters;
+    const focus = f.player !== 'all' ? f.player : null;
+    let n = 0;
+    for (const m of state.ann) {
+      const row = state.rows.get(m.id);
+      const show = Stats.passes(m, f);
+      if (show) {
+        n++;
+        const team = Stats.perspective(m, focus);
+        if (row.team !== team) {
+          const li = Render.matchRow(m, team, state.ctx);
+          row.li.replaceWith(li); row.li = li; row.team = team;
+        }
+      }
+      if (row.li.hidden === show) row.li.hidden = !show;
+    }
+    $('counter').textContent = `${fmtInt.format(n)} ${plural(n, 'partida', 'partidas')}`;
+    if (!state.ann.length) Render.listNone($('list-state'));
+    else if (!n) Render.listEmpty($('list-state'), () => clearFilters(true));
+    else Render.clear($('list-state'));
+    syncFilterUi();
+  }
+
+  function updateCards() {
+    for (const [puuid, entry] of state.cards) Render.setPlayerFiltered(entry, state.filters.player === puuid);
+  }
+
+  function setFilters(patch) {
+    if (!state.ctx) return;
+    const prevPlayer = state.filters.player;
+    state.filters = { ...state.filters, ...patch };
+    renderList();
+    if (state.filters.player !== prevPlayer) updateCards();
+  }
+  /** Limpa os filtros; o foco vai para o chip "Todos" de Jogador (o botão clicado some/é removido). */
+  function clearFilters(moveFocus) {
+    setFilters({ ...DEFAULTS });
+    if (moveFocus) { const chip = $('fs-player').querySelector('.chip'); if (chip) chip.focus(); }
+  }
+
+  function showPlayer(puuid) {
+    setFilters({ player: state.filters.player === puuid ? 'all' : puuid });
+    const sec = $('historico');
+    sec.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+    sec.focus({ preventScroll: true });
+  }
+
+  function showLoading() {
+    state.ctx = null;
+    setFiltersEnabled(false);
+    $('clear').hidden = true;
+    $('counter').textContent = '';
+    Render.text($('hero-meta'), 'Carregando…');
+    Render.text($('headline'), 'Carregando a manchete…');
+    Render.boardPlaceholder($('board'));
+    Render.clear($('group-form'));
+    Render.playersPlaceholder($('players'));
+    Render.highlightsPlaceholder($('highlights'), 'Carregando…');
+    Render.listLoading($('list-state'), $('matches'));
+  }
+  function showError() {
+    state.ctx = null;
+    setFiltersEnabled(false);
+    $('clear').hidden = true;
+    $('counter').textContent = '';
+    Render.text($('hero-meta'), 'Não foi possível carregar os dados.');
+    Render.text($('headline'), 'Sem placar por enquanto.');
+    Render.boardPlaceholder($('board'));
+    Render.clear($('group-form'));
+    Render.playersPlaceholder($('players'), 'Não foi possível carregar os jogadores.');
+    Render.highlightsPlaceholder($('highlights'), 'Indisponível no momento');
+    Render.listError($('list-state'), $('matches'), retry);
+  }
+  function retry() {
+    $('historico').focus({ preventScroll: true }); // o botão vai sumir: o foco fica no histórico
+    load();
+  }
+
+  async function load() {
+    showLoading();
+    try {
+      const [rawPlayers, rawMatches] = await Promise.all([state.source.loadPlayers(), state.source.loadMatches()]);
+      const players = Validate.players(rawPlayers);
+      const matches = Validate.matches(rawMatches);
+      const ann = Stats.annotate(matches, players);
+      const ctx = { expanded: state.expanded, memberIds: new Set(players.map((p) => p.puuid)),
+        nameByPuuid: new Map(players.map((p) => [p.puuid, String(p.displayName || p.riotIdGameName)])) };
+      state.players = players; state.ann = ann;
+      if (state.filters.player !== 'all' && !ctx.memberIds.has(state.filters.player)) state.filters.player = 'all';
+      if (state.filters.queue !== 'all' && !queueOptions(ann).some(([v]) => v === state.filters.queue)) state.filters.queue = 'all';
+
+      const g = Stats.group(ann);
+      const latestEnd = ann.length ? Math.max(...ann.map((m) => m.time + m.duration * 1000)) : Date.now();
+      Render.heroMeta($('hero-meta'), ann, latestEnd);
+      Render.headline($('headline'), g);
+      Render.board($('board'), g);
+      Render.groupForm($('group-form'), g);
+      Render.highlights($('highlights'), { mvp: Stats.mvp(ann, players), duo: Stats.bestDuo(ann, players),
+        kills: Stats.record(ann, players, 'kills'), vision: Stats.record(ann, players, 'visionScore') });
+
+      // Cards: criados uma vez.
+      state.cards.clear();
+      const cardsEl = Render.clear($('players'));
+      for (const p of players) {
+        const entry = Render.playerCard(p, Stats.player(ann, p.puuid), showPlayer);
+        state.cards.set(p.puuid, entry); cardsEl.append(entry.card);
+      }
+
+      // Chips.
+      Render.chips($('fs-player'), [['all', 'Todos'], ...players.map((p) => [p.puuid, String(p.displayName || p.riotIdGameName)])],
+        state.filters.player, (v) => setFilters({ player: v }));
+      Render.chips($('fs-queue'), queueOptions(ann), state.filters.queue, (v) => setFilters({ queue: v }));
+
+      // Linhas: criadas uma vez (do lado do jogador filtrado, se houver).
+      state.rows.clear();
+      const focus = state.filters.player !== 'all' ? state.filters.player : null;
+      const frag = document.createDocumentFragment();
+      for (const m of ann) {
+        const team = Stats.perspective(m, focus);
+        const li = Render.matchRow(m, team, ctx);
+        state.rows.set(m.id, { li, team }); frag.append(li);
+      }
+      Render.clear($('matches')).append(frag);
+      $('matches').classList.toggle('is-long', ann.length > 60);
+
+      state.ctx = ctx;
+      setFiltersEnabled(ann.length > 0);
+      renderList();
+      updateCards();
+    } catch (err) {
+      console.warn('[SPK] falha ao carregar dados:', err);
+      showError();
+    }
+  }
+
+  function init() {
+    state.source = createDataSource();
+    $('source-label').textContent = state.source.info.label;
+    $('source-note').textContent = state.source.info.note;
+    $('year').textContent = String(new Date().getFullYear());
+    $('filters').addEventListener('submit', (e) => e.preventDefault());
+    Render.chips($('fs-player'), [['all', 'Todos']], 'all', (v) => setFilters({ player: v }));
+    Render.chips($('fs-result'), [['all', 'Todos'], ['win', 'Vitórias'], ['loss', 'Derrotas']], 'all', (v) => setFilters({ result: v }));
+    Render.chips($('fs-queue'), queueOptions([]), 'all', (v) => setFilters({ queue: v }));
+    $('clear').addEventListener('click', () => clearFilters(true));
+    let t = 0;
+    window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => Render.markScrollables(), 150); });
+    load();
+  }
+  return { init, state, load };
+})();
+
+// Exposto para depuração/integração (ex.: trocar a fonte no console).
+window.SPK = { CONFIG, Stats, Validate, InlineDataSource, RiotProxyDataSource, App };
+App.init();
+})();
+</script>
+</body>
+</html>
